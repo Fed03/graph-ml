@@ -1,9 +1,0 @@
-{
-  "python.pythonPath": "C:\\Users\\templ\\miniconda3\\envs\\graph-ml\\python.exe",
-  "python.testing.pytestArgs": [
-    "."
-  ],
-  "python.testing.unittestEnabled": false,
-  "python.testing.nosetestsEnabled": false,
-  "python.testing.pytestEnabled": true
-}
