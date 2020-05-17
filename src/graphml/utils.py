@@ -17,6 +17,6 @@ def sparse_softmax(input: torch.Tensor, mask_idxs: torch.Tensor):
 
     out = input.exp()
     denominator = torch.zeros(N, dtype=input.dtype, device=input.device).scatter_add_(
-        src=out, index=mask_idxs, dim=0)
+        src=out, index=mask_idxs, dim=0)[mask_idxs]
 
     return out / denominator
