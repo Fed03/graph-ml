@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 from functools import reduce
-from functional_pipeline import pipeline, tap
+from functional_pipeline import pipeline
 from graphml.utils import sparse_softmax
 from pytest import approx
 
