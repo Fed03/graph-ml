@@ -29,3 +29,20 @@ def make_undirected_adjacency_matrix(adjency_coo_matrix: torch.Tensor):
     new_trg_idxs = torch.cat([trg_idxs, src_idxs], dim=0)
 
     return torch.stack([new_src_idxs, new_trg_idxs], dim=0).unique(dim=1)
+
+
+def scatter_mean(src: torch.Tensor, index: torch.Tensor) -> torch.Tensor:
+    N = index.max().item() + 1
+
+    sum_size = list(src.size())
+    sum_size[0] = N
+
+    _, broadcasted_index = torch.broadcast_tensors(src, index.view(-1, 1))
+    sum = torch.zeros(sum_size, dtype=src.dtype, device=src.device).scatter_add_(
+        src=src, index=broadcasted_index, dim=0)
+
+    denominator = torch.zeros(N,1, dtype=src.dtype, device=src.device).scatter_add_(
+        src=torch.ones(index.size(0),1, dtype=src.dtype, device=src.device), index=index.view(-1, 1), dim=0
+    )
+
+    return sum / denominator
