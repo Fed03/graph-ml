@@ -1,5 +1,6 @@
-from torch import nn
 import torch
+import torch.nn.functional as F
+from torch import nn
 from graphml.utils import add_self_edges_to_adjacency_matrix, sparse_softmax
 
 
@@ -35,7 +36,7 @@ class GatLayer(nn.Module):
 
         neighbors = neighbors * alpha
         return torch.zeros_like(self.weighted_inputs).scatter_add_(
-            src=neighbors, index=edge_src_idxs.view(-1,1).expand_as(neighbors), dim=0)
+            src=neighbors, index=edge_src_idxs.view(-1, 1).expand_as(neighbors), dim=0)
 
     def __calc_self_attention(self, nodes: torch.Tensor, neighbors: torch.Tensor, edge_src_idxs: torch.Tensor):
         alpha = torch.mm(
@@ -43,3 +44,24 @@ class GatLayer(nn.Module):
         alpha = self.leaky_relu(alpha)
 
         return sparse_softmax(alpha, edge_src_idxs).view(-1, 1)
+
+
+class MultiHeadGatLayer(nn.Module):
+    def __init__(self, heads_number: int, input_feature_dim: torch.Size, single_head_output_dim: torch.Size, attention_leakyReLU_slope=0.2, concat=True):
+        super(MultiHeadGatLayer, self).__init__()
+
+        for i in range(heads_number):
+            self.add_module("GAT_head_{}".format(i), GatLayer(
+                input_feature_dim, single_head_output_dim, attention_leakyReLU_slope))
+
+        self.__concat = concat
+
+    def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
+        head_outputs = [head(input_matrix, adjacency_coo_matrix)
+                        for head in self.children()]
+        if self.__concat:
+            ELU_outputs = [F.elu(output) for output in head_outputs]
+            return torch.cat(ELU_outputs, dim=1)
+        else:
+            mean_output = torch.mean(torch.stack(head_outputs, dim=0), dim=0)
+            return F.elu(mean_output)
