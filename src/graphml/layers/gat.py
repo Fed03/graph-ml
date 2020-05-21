@@ -47,7 +47,7 @@ class GatLayer(nn.Module):
 
 
 class MultiHeadGatLayer(nn.Module):
-    def __init__(self, heads_number: int, input_feature_dim: torch.Size, single_head_output_dim: torch.Size, attention_leakyReLU_slope=0.2, concat=True):
+    def __init__(self, heads_number: int, input_feature_dim: torch.Size, single_head_output_dim: torch.Size, attention_leakyReLU_slope=0.2, concat=True, activation_function = F.elu):
         super(MultiHeadGatLayer, self).__init__()
 
         for i in range(heads_number):
@@ -55,13 +55,14 @@ class MultiHeadGatLayer(nn.Module):
                 input_feature_dim, single_head_output_dim, attention_leakyReLU_slope))
 
         self.__concat = concat
+        self.__activation = activation_function
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
         head_outputs = [head(input_matrix, adjacency_coo_matrix)
                         for head in self.children()]
         if self.__concat:
-            ELU_outputs = [F.elu(output) for output in head_outputs]
+            ELU_outputs = [self.__activation(output) for output in head_outputs]
             return torch.cat(ELU_outputs, dim=1)
         else:
             mean_output = torch.mean(torch.stack(head_outputs, dim=0), dim=0)
-            return F.elu(mean_output)
+            return self.__activation(mean_output)
