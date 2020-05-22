@@ -21,17 +21,5 @@ class GraphSAGELayer(nn.Module):
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
         edge_src_idxs = adjacency_coo_matrix[0]
         
-        nodes = self.weighted_inputs.index_select(dim=0, index=edge_src_idxs)
-        neighbors = self.weighted_inputs.index_select(dim=0, index=adjacency_coo_matrix[1])
-
-
-
-
-class BaseAggregator(ABC):
-  @abstractmethod
-  def aggregate(self):
-    pass
-
-  def __call__(self):
-    return self.aggregate()
-
+        nodes = input_matrix.index_select(dim=0, index=edge_src_idxs)
+        neighbors = input_matrix.index_select(dim=0, index=adjacency_coo_matrix[1])
