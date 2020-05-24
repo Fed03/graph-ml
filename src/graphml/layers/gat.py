@@ -1,7 +1,8 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from graphml.utils import add_self_edges_to_adjacency_matrix, sparse_softmax
+from graphml.utils import add_self_edges_to_adjacency_matrix
+from torch_scatter import scatter_softmax
 
 
 class GatLayer(nn.Module):
@@ -43,11 +44,11 @@ class GatLayer(nn.Module):
             torch.cat([nodes, neighbors], dim=1), self.attention_bias_vector.t())
         alpha = self.leaky_relu(alpha)
 
-        return sparse_softmax(alpha, edge_src_idxs).view(-1, 1)
+        return scatter_softmax(alpha, edge_src_idxs, dim=0).view(-1, 1)
 
 
 class MultiHeadGatLayer(nn.Module):
-    def __init__(self, heads_number: int, input_feature_dim: torch.Size, single_head_output_dim: torch.Size, attention_leakyReLU_slope=0.2, concat=True, activation_function = F.elu):
+    def __init__(self, heads_number: int, input_feature_dim: torch.Size, single_head_output_dim: torch.Size, attention_leakyReLU_slope=0.2, concat=True, activation_function=F.elu):
         super(MultiHeadGatLayer, self).__init__()
 
         for i in range(heads_number):
@@ -61,7 +62,8 @@ class MultiHeadGatLayer(nn.Module):
         head_outputs = [head(input_matrix, adjacency_coo_matrix)
                         for head in self.children()]
         if self.__concat:
-            ELU_outputs = [self.__activation(output) for output in head_outputs]
+            ELU_outputs = [self.__activation(output)
+                           for output in head_outputs]
             return torch.cat(ELU_outputs, dim=1)
         else:
             mean_output = torch.mean(torch.stack(head_outputs, dim=0), dim=0)
