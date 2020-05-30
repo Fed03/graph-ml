@@ -1,4 +1,5 @@
 import torch
+from typing import List
 
 
 def add_self_edges_to_adjacency_matrix(adjency_coo_matrix: torch.Tensor):
@@ -19,3 +20,10 @@ def make_undirected_adjacency_matrix(adjency_coo_matrix: torch.Tensor):
     new_trg_idxs = torch.cat([trg_idxs, src_idxs], dim=0)
 
     return torch.stack([new_src_idxs, new_trg_idxs], dim=0).unique(dim=1)
+
+
+def scatter_split(src: torch.Tensor, indexes: torch.Tensor) -> List[torch.Tensor]:
+    sorted_src = src[indexes.argsort()]
+    indexes_count = torch.unique(indexes, return_counts=True)[1]
+
+    return torch.split(sorted_src, indexes_count.tolist(), dim=0)
