@@ -47,7 +47,7 @@ class MaxPoolAggregator(Aggregator):
         neighbors = input_matrix.index_select(index=edge_trg_idxs, dim=0)
         neighbors_repr = F.relu(self.fc_net(neighbors))
         aggregated_neighbors = scatter_max(
-            neighbors_repr, edge_src_idxs, dim=0)
+            neighbors_repr, edge_src_idxs, dim=0)[0]
 
         concat = torch.cat([input_matrix, aggregated_neighbors], dim=1)
         return torch.mm(concat, self.weights_matrix)
@@ -78,7 +78,7 @@ class LstmAggregator(Aggregator):
         neighbors_features, edge_src_idxs = self.__randomly_permutate_neighbors(neighbors_features,edge_src_idxs)
         neighbors_groups = scatter_split(neighbors_features,edge_src_idxs)
 
-        outputs, _ = self.lstm(pack_sequence(neighbors_groups))
+        outputs, _ = self.lstm(pack_sequence(neighbors_groups, enforce_sorted=False))
         outputs, lenghts = pad_packed_sequence(outputs, batch_first=True)
         outputs = outputs.view(-1, outputs.size(-1))
 
