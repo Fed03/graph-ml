@@ -1,0 +1,8 @@
+GraphML:
+  ☐ Dropout
+  ☐ Normalization
+  GraphSAGE:
+    ☐ Neighborhood Sampler https://pytorch.org/docs/stable/data.html
+  GCN:
+    ☐ Implementation
+
