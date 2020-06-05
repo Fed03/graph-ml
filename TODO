@@ -2,7 +2,9 @@ GraphML:
   ☐ Dropout
   ☐ Normalization
   GraphSAGE:
-    ☐ Neighborhood Sampler https://pytorch.org/docs/stable/data.html
+    ✔ Neighborhood Sampler https://pytorch.org/docs/stable/data.html @done(20-06-05 14:22)
   GCN:
     ☐ Implementation
 
+GIT:
+  ☐ Cambiare user info sul MAC
