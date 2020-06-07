@@ -41,3 +41,12 @@ def sample_neighbors(adjency_coo_matrix: torch.Tensor, sample_size: int) -> torc
             sampled_group_neighbors, node_id), sampled_group_neighbors], dim=0))
 
     return torch.cat(sampled_groups, dim=1)
+
+
+def degrees(adjency_coo_matrix: torch.Tensor) -> torch.Tensor:
+    src_idxs = adjency_coo_matrix[0]
+
+    ones = torch.ones_like(src_idxs)
+
+    max_node_id = adjency_coo_matrix.max().item()
+    return torch.zeros(max_node_id + 1, device=ones.device, dtype=ones.dtype).scatter_add_(src=ones, index=src_idxs, dim=-1)

@@ -1,6 +1,6 @@
 import torch
-import torch.nn.functional as F
 from torch import nn
+import torch.nn.functional as F
 from abc import ABC, abstractmethod
 from graphml.layers.sage_aggregators import Aggregator
 
