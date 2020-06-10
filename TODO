@@ -4,7 +4,7 @@ GraphML:
   GraphSAGE:
     ✔ Neighborhood Sampler https://pytorch.org/docs/stable/data.html @done(20-06-05 14:22)
   GCN:
-    ☐ Implementation
+    ✔ Implementation @done(20-06-10 16:36)
 
 GIT:
   ☐ Cambiare user info sul MAC
