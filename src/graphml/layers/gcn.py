@@ -1,8 +1,9 @@
+from __future__ import annotations
 import math
 import torch
 from torch import nn
-from torch_scatter import scatter_add
 import torch.nn.functional as F
+from torch_scatter import scatter_add
 from graphml.utils import add_self_edges_to_adjacency_matrix, degrees
 
 
@@ -53,4 +54,7 @@ class GCNLayerFactory():
             edge_src_idxs, edge_trg_idxs = self.__adj_coo_matrix
             neighbors = weighted.index_select(index=edge_trg_idxs, dim=0)
 
-            return scatter_add(self.__adj_values * neighbors,edge_src_idxs,dim=0)
+            aggregated = scatter_add(
+                self.__adj_values.view(-1, 1) * neighbors, edge_src_idxs, dim=0)
+
+            return self.__activation(aggregated)
