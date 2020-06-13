@@ -1,6 +1,13 @@
 import torch
 from typing import List
 
+def normalize_matrix(matrix: torch.Tensor) -> torch.Tensor:
+    #return matrix / torch.norm(matrix, p=1, dim=1, keepdim=True)
+    row_sum = torch.sum(matrix, dim=1).view(-1,1)
+    normalized = matrix / row_sum
+    normalized[torch.isnan(normalized)] = 0
+
+    return normalized
 
 def add_self_edges_to_adjacency_matrix(adjency_coo_matrix: torch.Tensor) -> torch.Tensor:
     max_node_id = adjency_coo_matrix.max().item()
