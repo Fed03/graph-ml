@@ -15,13 +15,14 @@ class GCNLayerFactory():
             adj)
         self.__adjency_coo_matrix = adj
 
-    def create(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, activation_function=F.relu) -> GCNLayerFactory.Layer:
+    def create(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, activation_function=F.relu, input_dropout=0.) -> GCNLayerFactory.Layer:
         return GCNLayerFactory.Layer(
             input_feature_dim,
             output_feature_dim,
             self.__adjency_coo_matrix,
             self.__normalized_adj_values,
-            activation_function
+            activation_function,
+            input_dropout
         )
 
     @staticmethod
@@ -36,12 +37,13 @@ class GCNLayerFactory():
         return degrees_vector[adj_row_idxs] * adj_values * degrees_vector[adj_col_indexes]
 
     class Layer(nn.Module):
-        def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, adj_coo_matrix: torch.Tensor, adj_values: torch.Tensor, activation_function=F.relu):
+        def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, adj_coo_matrix: torch.Tensor, adj_values: torch.Tensor, activation_function=F.relu, input_dropout = 0.):
             super().__init__()
 
             self.__adj_coo_matrix = adj_coo_matrix
             self.__adj_values = adj_values
             self.__activation = activation_function
+            self.__dropout = nn.Dropout(input_dropout) if input_dropout > 0 else None
 
             self.weights_matrix = nn.Parameter(torch.empty(
                 input_feature_dim, output_feature_dim, dtype=torch.float32))
@@ -49,6 +51,9 @@ class GCNLayerFactory():
             nn.init.xavier_uniform_(self.weights_matrix)
 
         def forward(self, input_matrix: torch.Tensor):
+            if self.__dropout is not None:
+                input_matrix = self.__dropout(input_matrix)
+
             weighted = torch.mm(input_matrix, self.weights_matrix)
 
             edge_src_idxs, edge_trg_idxs = self.__adj_coo_matrix

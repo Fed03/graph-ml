@@ -6,7 +6,7 @@ from torch_scatter import scatter_softmax
 
 
 class GatLayer(nn.Module):
-    def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, attention_leakyReLU_slope=0.2):
+    def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, attention_leakyReLU_slope=0.2, dropout_prob=0.):
         super(GatLayer, self).__init__()
 
         self.weights_matrix = nn.Parameter(torch.empty(
@@ -16,6 +16,7 @@ class GatLayer(nn.Module):
 
         self.__init_parameters()
 
+        self.dropout = nn.Dropout(dropout_prob) if dropout_prob > 0 else None
         self.leaky_relu = nn.LeakyReLU(attention_leakyReLU_slope)
 
     def __init_parameters(self):
@@ -26,6 +27,9 @@ class GatLayer(nn.Module):
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
         # TODO: move in outer net
         adj = add_self_edges_to_adjacency_matrix(adjacency_coo_matrix)
+
+        if self.dropout is not None:
+                input_matrix = self.dropout(input_matrix)
 
         self.weighted_inputs = torch.mm(input_matrix, self.weights_matrix)
 
@@ -43,6 +47,9 @@ class GatLayer(nn.Module):
         alpha = torch.mm(
             torch.cat([nodes, neighbors], dim=1), self.attention_bias_vector.t())
         alpha = self.leaky_relu(alpha)
+
+        if self.dropout is not None:
+            alpha = self.dropout(alpha)
 
         return scatter_softmax(alpha, edge_src_idxs, dim=0).view(-1, 1)
 
