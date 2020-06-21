@@ -2,7 +2,7 @@ GraphML:
   Dropout
   Normalization
   Paper nets:
-    ☐ GCN
+    ✔ GCN @done(20-06-21 11:40)
     ☐ SAGE
     ☐ GAT
   GraphSAGE:
