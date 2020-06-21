@@ -9,43 +9,43 @@ class GatLayer(nn.Module):
     def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, attention_leakyReLU_slope=0.2, dropout_prob=0.):
         super(GatLayer, self).__init__()
 
-        self.weights_matrix = nn.Parameter(torch.empty(
+        self._weights_matrix = nn.Parameter(torch.empty(
             input_feature_dim, output_feature_dim, dtype=torch.float32))
-        self.attention_bias_vector = nn.Parameter(
+        self._attention_bias_vector = nn.Parameter(
             torch.empty(1, 2*output_feature_dim, dtype=torch.float32))
 
-        self.__init_parameters()
+        self._init_parameters()
 
-        self.dropout = nn.Dropout(dropout_prob) if dropout_prob > 0 else None
-        self.leaky_relu = nn.LeakyReLU(attention_leakyReLU_slope)
+        self._dropout = nn.Dropout(dropout_prob) if dropout_prob > 0 else None
+        self._leaky_relu = nn.LeakyReLU(attention_leakyReLU_slope)
 
-    def __init_parameters(self):
+    def _init_parameters(self):
         for parameter in self.parameters():
             nn.init.xavier_uniform_(parameter)
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
-        if self.dropout is not None:
-                input_matrix = self.dropout(input_matrix)
+        if self._dropout is not None:
+                input_matrix = self._dropout(input_matrix)
 
-        self.weighted_inputs = torch.mm(input_matrix, self.weights_matrix)
+        weighted_inputs = torch.mm(input_matrix, self._weights_matrix)
 
         edge_src_idxs, edge_trg_idxs = adjacency_coo_matrix
-        nodes = self.weighted_inputs.index_select(dim=0, index=edge_src_idxs)
-        neighbors = self.weighted_inputs.index_select(dim=0, index=edge_trg_idxs)
+        nodes = weighted_inputs.index_select(dim=0, index=edge_src_idxs)
+        neighbors = weighted_inputs.index_select(dim=0, index=edge_trg_idxs)
 
-        alpha = self.__calc_self_attention(nodes, neighbors, edge_src_idxs)
+        alpha = self._calc_self_attention(nodes, neighbors, edge_src_idxs)
 
         neighbors = neighbors * alpha
-        return torch.zeros_like(self.weighted_inputs).scatter_add_(
+        return torch.zeros_like(weighted_inputs).scatter_add_(
             src=neighbors, index=edge_src_idxs.view(-1, 1).expand_as(neighbors), dim=0)
 
-    def __calc_self_attention(self, nodes: torch.Tensor, neighbors: torch.Tensor, edge_src_idxs: torch.Tensor):
+    def _calc_self_attention(self, nodes: torch.Tensor, neighbors: torch.Tensor, edge_src_idxs: torch.Tensor):
         alpha = torch.mm(
-            torch.cat([nodes, neighbors], dim=1), self.attention_bias_vector.t())
-        alpha = self.leaky_relu(alpha)
+            torch.cat([nodes, neighbors], dim=1), self._attention_bias_vector.t())
+        alpha = self._leaky_relu(alpha)
 
-        if self.dropout is not None:
-            alpha = self.dropout(alpha)
+        if self._dropout is not None:
+            alpha = self._dropout(alpha)
 
         return scatter_softmax(alpha, edge_src_idxs, dim=0).view(-1, 1)
 
@@ -58,16 +58,16 @@ class MultiHeadGatLayer(nn.Module):
             self.add_module("GAT_head_{}".format(i), GatLayer(
                 input_feature_dim, single_head_output_dim, attention_leakyReLU_slope))
 
-        self.__concat = concat
-        self.__activation = activation_function
+        self._concat = concat
+        self._activation = activation_function
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
         head_outputs = [head(input_matrix, adjacency_coo_matrix)
                         for head in self.children()]
-        if self.__concat:
-            ELU_outputs = [self.__activation(output)
+        if self._concat:
+            ELU_outputs = [self._activation(output)
                            for output in head_outputs]
             return torch.cat(ELU_outputs, dim=1)
         else:
             mean_output = torch.mean(torch.stack(head_outputs, dim=0), dim=0)
-            return self.__activation(mean_output)
+            return self._activation(mean_output)

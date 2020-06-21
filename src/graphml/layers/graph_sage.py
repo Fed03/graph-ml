@@ -11,10 +11,10 @@ class GraphSAGELayer(nn.Module):
         if not isinstance(aggregator, Aggregator):
             raise TypeError("Unexpected aggregator")
         
-        self.__aggregator = aggregator
-        self.__activation = activation_function
+        self._aggregator = aggregator
+        self._activation = activation_function
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
-        output = self.__activation(self.__aggregator(input_matrix,adjacency_coo_matrix))
+        output = self._activation(self._aggregator(input_matrix,adjacency_coo_matrix))
 
         return F.normalize(output)
