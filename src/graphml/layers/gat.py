@@ -21,21 +21,17 @@ class GatLayer(nn.Module):
 
     def __init_parameters(self):
         for parameter in self.parameters():
-            # TODO: add gain?
             nn.init.xavier_uniform_(parameter)
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
-        # TODO: move in outer net
-        adj = add_self_edges_to_adjacency_matrix(adjacency_coo_matrix)
-
         if self.dropout is not None:
                 input_matrix = self.dropout(input_matrix)
 
         self.weighted_inputs = torch.mm(input_matrix, self.weights_matrix)
 
-        edge_src_idxs = adj[0]
+        edge_src_idxs, edge_trg_idxs = adjacency_coo_matrix
         nodes = self.weighted_inputs.index_select(dim=0, index=edge_src_idxs)
-        neighbors = self.weighted_inputs.index_select(dim=0, index=adj[1])
+        neighbors = self.weighted_inputs.index_select(dim=0, index=edge_trg_idxs)
 
         alpha = self.__calc_self_attention(nodes, neighbors, edge_src_idxs)
 

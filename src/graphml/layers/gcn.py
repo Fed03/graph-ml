@@ -47,7 +47,7 @@ class GCNLayerFactory():
 
             self.weights_matrix = nn.Parameter(torch.empty(
                 input_feature_dim, output_feature_dim, dtype=torch.float32))
-            # TODO: add gain?
+            # TODO: add gain (relu)?
             nn.init.xavier_uniform_(self.weights_matrix)
 
         def forward(self, input_matrix: torch.Tensor):

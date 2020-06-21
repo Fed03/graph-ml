@@ -17,7 +17,7 @@ class MeanAggregator(Aggregator):
         self.weights_matrix = nn.Parameter(torch.empty(
             input_feature_dim, output_feature_dim, dtype=torch.float32))
 
-        # TODO: add gain?
+        # TODO: add gain (relu)?
         nn.init.xavier_uniform_(self.weights_matrix)
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor) -> torch.Tensor:
@@ -36,7 +36,7 @@ class MaxPoolAggregator(Aggregator):
 
         self.weights_matrix = nn.Parameter(torch.empty(
             input_feature_dim + hidden_feature_dim, output_feature_dim, dtype=torch.float32))
-        # TODO: add gain?
+        # TODO: add gain (relu)?
         nn.init.xavier_uniform_(self.weights_matrix)
 
         self.fc_net = nn.Linear(input_feature_dim, hidden_feature_dim)
@@ -59,7 +59,7 @@ class LstmAggregator(Aggregator):
 
         self.weights_matrix = nn.Parameter(torch.empty(
             input_feature_dim + hidden_feature_dim, output_feature_dim, dtype=torch.float32))
-        # TODO: add gain?
+        # TODO: add gain (relu)?
         nn.init.xavier_uniform_(self.weights_matrix)
 
         self.lstm = nn.LSTM(input_size=input_feature_dim,
