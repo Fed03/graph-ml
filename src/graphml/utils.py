@@ -1,13 +1,15 @@
 import torch
-from typing import List
+from typing import List, Dict
+
 
 def normalize_matrix(matrix: torch.Tensor) -> torch.Tensor:
-    #return matrix / torch.norm(matrix, p=1, dim=1, keepdim=True)
-    row_sum = torch.sum(matrix, dim=1).view(-1,1)
+    # return matrix / torch.norm(matrix, p=1, dim=1, keepdim=True)
+    row_sum = torch.sum(matrix, dim=1).view(-1, 1)
     normalized = matrix / row_sum
     normalized[torch.isnan(normalized)] = 0
 
     return normalized
+
 
 def add_self_edges_to_adjacency_matrix(adjency_coo_matrix: torch.Tensor) -> torch.Tensor:
     max_node_id = adjency_coo_matrix.max().item()
@@ -57,3 +59,14 @@ def degrees(adjency_coo_matrix: torch.Tensor) -> torch.Tensor:
 
     max_node_id = adjency_coo_matrix.max().item()
     return torch.zeros(max_node_id + 1, device=ones.device, dtype=ones.dtype).scatter_add_(src=ones, index=src_idxs, dim=-1)
+
+
+def build_adj_matrix_from_dict(dictionary: Dict[int, List[int]]) -> torch.Tensor:
+    adj_chunks = []
+    for src_idx, trg_idxs in dictionary.items():
+        trg_row = torch.tensor(trg_idxs, dtype=torch.int32)
+        src_row = torch.full_like(trg_row, src_idx, dtype=torch.int32)
+
+        adj_chunks.append(torch.stack([src_row, trg_row], dim=0))
+
+    return torch.cat(adj_chunks, dim=1)

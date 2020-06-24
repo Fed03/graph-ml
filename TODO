@@ -5,6 +5,13 @@ GraphML:
     ✔ GCN @done(20-06-21 11:40)
     ☐ SAGE
     ☐ GAT
+  Datasets Loading:
+    ☐ Cora - Transductive (GCN, GAT)
+    ☐ Citeseer - Transductive (GCN, GAT)
+    ☐ PubMed - Transductive (GCN, GAT)
+    ☐ PPI - Inductive (GraphSage, GAT)
+    ☐ Reddit - Inductive (GraphSage)
+    ☐ WoS - Inductive (GraphSage)
   GraphSAGE:
     ✔ Neighborhood Sampler @done(20-06-05 14:22)
     ✔ MiniBatch https://pytorch.org/docs/stable/data.html @done(20-06-14 18:39)
