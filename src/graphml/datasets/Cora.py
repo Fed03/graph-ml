@@ -5,26 +5,41 @@ import pickle
 import requests
 import numpy as np
 from tqdm import tqdm
-from typing import List, NamedTuple
-from torch.utils.data import Dataset
+from typing import List, NamedTuple, Callable
 from scipy.sparse.csr import csr_matrix
 from graphml.utils import build_adj_matrix_from_dict
 
 
-class CoraDataset(Dataset):
+class CoraDataset():
     url = "https://github.com/kimiyoung/planetoid/raw/master/data"
     name = "cora"
     files = ["allx", "ally", "graph", "test.index", "tx", "ty", "x", "y"]
 
-    def __init__(self, base_path: str):
-        super().__init__()
+    def __init__(self, base_path: str, transform: Callable[[CoraDataset.Data], CoraDataset.Data] = None):
         root_path = os.path.join(base_path, "data", self.name)
         self._raw_folder = os.path.join(root_path, "raw")
         self._processed_file_path = os.path.join(
             root_path, f"{self.name}.processed.pt")
 
+        self._transform = transform if transform else lambda x: x
+
         self._download_dataset()
         self._process()
+
+    def __len__(self):
+        return self.size
+
+    @property
+    def size(self):
+        return len(self._internal_data.features_vectors)
+
+    @property
+    def number_of_classes(self):
+        return self._internal_data.labels.max().item() + 1
+
+    @property
+    def features_per_node(self):
+        return self._internal_data.features_vectors.size(1)
 
     def _raw_file_names(self) -> List[str]:
         return [self._raw_file_name(file) for file in self.files]
@@ -47,10 +62,12 @@ class CoraDataset(Dataset):
 
     def _process(self):
         if not os.path.exists(self._processed_file_path):
-            self._internal_data = self._process_raw_files()
-            torch.save(self._internal_data, self._processed_file_path)
+            data = self._process_raw_files()
+            torch.save(data, self._processed_file_path)
         else:
-            self._internal_data = torch.load(self._processed_file_path)
+            data = torch.load(self._processed_file_path)
+
+        self._internal_data = self._transform(data)
 
         print(f"{self.name.capitalize()} dataset correctly loaded.")
 
