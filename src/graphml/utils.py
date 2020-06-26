@@ -61,7 +61,6 @@ def degrees(adjency_coo_matrix: torch.Tensor) -> torch.Tensor:
     return torch.zeros(max_node_id + 1, device=ones.device, dtype=ones.dtype).scatter_add_(src=ones, index=src_idxs, dim=-1)
 
 
-# TODO: clean adj (remove self-loops and duplicates)
 def build_adj_matrix_from_dict(dictionary: Dict[int, List[int]]) -> torch.Tensor:
     adj_chunks = []
     for src_idx, trg_idxs in dictionary.items():
@@ -70,4 +69,6 @@ def build_adj_matrix_from_dict(dictionary: Dict[int, List[int]]) -> torch.Tensor
 
         adj_chunks.append(torch.stack([src_row, trg_row], dim=0))
 
-    return torch.cat(adj_chunks, dim=1)
+    adj = torch.cat(adj_chunks, dim=1).unique(dim=1)
+    without_self_loop_mask = adj[0] != adj[1]
+    return adj[:, without_self_loop_mask]
