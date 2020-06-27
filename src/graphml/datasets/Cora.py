@@ -126,3 +126,6 @@ class CoraDataset():
 
     def __getattr__(self, name):
         return getattr(self._internal_data, name)
+
+    def to(self, *args, **kwargs):
+        self._internal_data = self._internal_data.to(*args, **kwargs)

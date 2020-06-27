@@ -9,4 +9,6 @@ class InternalData(NamedTuple):
     train_mask: torch.Tensor
     test_mask: torch.Tensor
     validation_mask: torch.Tensor
-    # TODO: add to() method
+
+    def to(self, *args, **kwargs):
+        return InternalData._make([t.to(*args,**kwargs) for t in self])

@@ -14,7 +14,7 @@ def normalize_matrix(matrix: torch.Tensor) -> torch.Tensor:
 def add_self_edges_to_adjacency_matrix(adjency_coo_matrix: torch.Tensor) -> torch.Tensor:
     max_node_id = adjency_coo_matrix.max().item()
     self_edges = torch.arange(
-        max_node_id + 1, dtype=adjency_coo_matrix.dtype).repeat(2, 1)
+        max_node_id + 1, dtype=adjency_coo_matrix.dtype, device=adjency_coo_matrix.device).repeat(2, 1)
 
     src_idxs, trg_idxs = adjency_coo_matrix
     mask = src_idxs != trg_idxs
