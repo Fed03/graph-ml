@@ -18,24 +18,12 @@ class GCNNet(torch.nn.Module):
         x = self._conv2(x)
         return x
 
-
-def loss_factory(train_mask: torch.Tensor) -> Callable[[torch.Tensor, torch.Tensor], torch.Tensor]:
-    def loss_func(model_output: torch.Tensor, labels: torch.Tensor):
-        if train_mask is None:
-            return F.nll_loss(model_output, labels)
-        else:
-            return F.nll_loss(model_output[train_mask], labels[train_mask])
-
-    return loss_func
-
-
 def GCN_model(
     adjency_coo_matrix: torch.Tensor,
     input_feature_dim: torch.Size,
     number_of_classes: int,
-    train_mask: torch.Tensor = None,
     learning_rate=.01,
     weight_decay=5e-4
 ) -> Tuple[GCNNet, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]:
     net = GCNNet(adjency_coo_matrix, input_feature_dim, number_of_classes)
-    return net, loss_factory(train_mask), torch.optim.Adam(net.parameters(), learning_rate)
+    return net, F.nll_loss, torch.optim.Adam(net.parameters(), learning_rate)

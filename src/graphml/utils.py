@@ -64,8 +64,8 @@ def degrees(adjency_coo_matrix: torch.Tensor) -> torch.Tensor:
 def build_adj_matrix_from_dict(dictionary: Dict[int, List[int]]) -> torch.Tensor:
     adj_chunks = []
     for src_idx, trg_idxs in dictionary.items():
-        trg_row = torch.tensor(trg_idxs, dtype=torch.int32)
-        src_row = torch.full_like(trg_row, src_idx, dtype=torch.int32)
+        trg_row = torch.tensor(trg_idxs, dtype=torch.long)
+        src_row = torch.full_like(trg_row, src_idx, dtype=torch.long)
 
         adj_chunks.append(torch.stack([src_row, trg_row], dim=0))
 

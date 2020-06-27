@@ -5,9 +5,10 @@ import pickle
 import requests
 import numpy as np
 from tqdm import tqdm
-from typing import List, NamedTuple, Callable
+from typing import List, Callable
+from .InternalData import InternalData
 from scipy.sparse.csr import csr_matrix
-from graphml.utils import build_adj_matrix_from_dict
+from graphml.utils import build_adj_matrix_from_dict, make_undirected_adjacency_matrix
 
 
 class CoraDataset():
@@ -15,7 +16,7 @@ class CoraDataset():
     name = "cora"
     files = ["allx", "ally", "graph", "test.index", "tx", "ty", "x", "y"]
 
-    def __init__(self, base_path: str, transform: Callable[[CoraDataset.Data], CoraDataset.Data] = None):
+    def __init__(self, base_path: str, transform: Callable[[InternalData], InternalData] = None):
         root_path = os.path.join(base_path, "data", self.name)
         self._raw_folder = os.path.join(root_path, "raw")
         self._processed_file_path = os.path.join(
@@ -71,7 +72,7 @@ class CoraDataset():
 
         print(f"{self.name.capitalize()} dataset correctly loaded.")
 
-    def _process_raw_files(self) -> CoraDataset.Data:
+    def _process_raw_files(self) -> InternalData:
         datas = {file_name: self._load_binary_file(
             file_name) for file_name in self.files if file_name != "test.index"}
         datas["test.index"] = self._load_text_file("test.index")
@@ -100,7 +101,7 @@ class CoraDataset():
         test_mask = torch.full((dataset_size,), False, dtype=torch.bool)
         test_mask[test_idxs] = True
 
-        return CoraDataset.Data(features_vectors, labels, datas["graph"], train_mask, test_mask, val_mask)
+        return InternalData(features_vectors, labels, make_undirected_adjacency_matrix(datas["graph"]), train_mask, test_mask, val_mask)
 
     def _load_binary_file(self, file_name: str) -> torch.Tensor:
         path = os.path.join(self._raw_folder, self._raw_file_name(file_name))
@@ -123,10 +124,5 @@ class CoraDataset():
 
         return torch.tensor([int(num) for num in lines], dtype=torch.long)
 
-    class Data(NamedTuple):
-        features_vectors: torch.Tensor
-        labels: torch.Tensor
-        adj_coo_matrix: torch.Tensor
-        train_mask: torch.Tensor
-        test_mask: torch.Tensor
-        validation_mask: torch.Tensor
+    def __getattr__(self, name):
+        return getattr(self._internal_data, name)
