@@ -1,4 +1,3 @@
-from __future__ import annotations
 import os
 import torch
 import pickle
@@ -11,51 +10,51 @@ from scipy.sparse.csr import csr_matrix
 from graphml.utils import build_adj_matrix_from_dict, make_undirected_adjacency_matrix
 
 
-class CoraDataset():
+class PlanetoidDatasetLoader():
     url = "https://github.com/kimiyoung/planetoid/raw/master/data"
-    name = "cora"
     files = ["allx", "ally", "graph", "test.index", "tx", "ty", "x", "y"]
 
-    def __init__(self, base_path: str, transform: Callable[[InternalData], InternalData] = None):
-        root_path = os.path.join(base_path, "data", self.name)
-        self._raw_folder = os.path.join(root_path, "raw")
-        self._processed_file_path = os.path.join(
-            root_path, f"{self.name}.processed.pt")
+    def __init__(self, dataset_name: str, base_path: str, transform: Callable[[InternalData], InternalData] = None):
+        if dataset_name not in ["pubmed", "cora", "citeseer"]:
+            raise ValueError("dataset_name")
 
+        self._dataset_name = dataset_name
+        self._root_path = os.path.join(base_path, "data", self._dataset_name)
         self._transform = transform if transform else lambda x: x
 
+    def load(self) -> InternalData:
         self._download_dataset()
         self._process()
-
-    def __len__(self):
-        return self.size
+        return self._internal_data
 
     @property
-    def size(self):
-        return len(self._internal_data.features_vectors)
+    def _pretty_name(self):
+        return self._dataset_name.capitalize()
 
     @property
-    def number_of_classes(self):
-        return self._internal_data.labels.max().item() + 1
+    def _raw_folder(self):
+        return os.path.join(self._root_path, "raw")
 
     @property
-    def features_per_node(self):
-        return self._internal_data.features_vectors.size(1)
+    def _processed_file_path(self):
+        return os.path.join(self._root_path, f"{self._dataset_name}.processed.pt")
 
+    @property
     def _raw_file_names(self) -> List[str]:
         return [self._raw_file_name(file) for file in self.files]
 
     def _raw_file_name(self, file_name: str) -> str:
-        return f"ind.{self.name}.{file_name}"
+        return f"ind.{self._dataset_name}.{file_name}"
 
     def _download_dataset(self):
         if os.path.exists(self._raw_folder):
-            print(f"The {self.name.capitalize()} dataset is already downloaded.")
+            print(f"The {self._pretty_name} dataset is already downloaded.")
         else:
             os.makedirs(self._raw_folder)
 
-            print(f"Downloading {self.name.capitalize()} dataset files...")
-            for file_name in tqdm(self._raw_file_names()):
+            print(f"Downloading {self._pretty_name} dataset files...")
+            for file_name in tqdm(self._raw_file_names):
+
                 response = requests.get(f"{self.url}/{file_name}")
                 with open(os.path.join(self._raw_folder, file_name), "wb") as target:
                     target.write(response.content)
@@ -70,7 +69,7 @@ class CoraDataset():
 
         self._internal_data = self._transform(data)
 
-        print(f"{self.name.capitalize()} dataset correctly loaded.")
+        print(f"{self._pretty_name} dataset correctly loaded.")
 
     def _process_raw_files(self) -> InternalData:
         datas = {file_name: self._load_binary_file(
@@ -101,7 +100,7 @@ class CoraDataset():
         test_mask = torch.full((dataset_size,), False, dtype=torch.bool)
         test_mask[test_idxs] = True
 
-        return InternalData(features_vectors, labels, make_undirected_adjacency_matrix(datas["graph"]), train_mask, test_mask, val_mask)
+        return InternalData(self._pretty_name, features_vectors, labels, make_undirected_adjacency_matrix(datas["graph"]), train_mask, test_mask, val_mask)
 
     def _load_binary_file(self, file_name: str) -> torch.Tensor:
         path = os.path.join(self._raw_folder, self._raw_file_name(file_name))
@@ -123,9 +122,3 @@ class CoraDataset():
             lines = filter(None, file_obj.read().split("\n"))
 
         return torch.tensor([int(num) for num in lines], dtype=torch.long)
-
-    def __getattr__(self, name):
-        return getattr(self._internal_data, name)
-
-    def to(self, *args, **kwargs):
-        self._internal_data = self._internal_data.to(*args, **kwargs)
