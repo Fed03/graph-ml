@@ -26,4 +26,4 @@ def GCN_model(
     weight_decay=5e-4
 ) -> Tuple[GCNNet, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]:
     net = GCNNet(adjency_coo_matrix, input_feature_dim, number_of_classes)
-    return net, F.nll_loss, torch.optim.Adam(net.parameters(), learning_rate)
+    return net, F.nll_loss, torch.optim.Adam(net.parameters(), learning_rate,weight_decay=weight_decay)
