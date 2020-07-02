@@ -76,12 +76,14 @@ class PlanetoidDatasetLoader():
             file_name) for file_name in self.files if file_name != "test.index"}
         datas["test.index"] = self._load_text_file("test.index")
 
+        test_count = datas["test.index"].max().item() - datas["test.index"].min().item() + 1
+
         features_vectors = torch.cat(
-            [datas["allx"], torch.empty_like(datas["tx"])], dim=0)
+            [datas["allx"], torch.empty(test_count, datas["allx"].size(-1),dtype=datas["allx"].dtype,device=datas["allx"].device)], dim=0)
         features_vectors[datas["test.index"]] = datas["tx"]
 
         labels = torch.cat(
-            [datas["ally"], torch.zeros_like(datas["ty"])], dim=0)
+            [datas["ally"], torch.zeros(test_count, datas["ally"].size(-1),dtype=datas["ally"].dtype,device=datas["ally"].device)], dim=0)
         labels[datas["test.index"]] = datas["ty"]
         labels = labels.argmax(dim=1)
 

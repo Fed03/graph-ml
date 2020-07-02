@@ -2,7 +2,7 @@ import os
 import math
 import torch
 from graphml.paper_nets import GCN_model
-from graphml.datasets import CoraDataset, PubmedDataset
+from graphml.datasets import CoraDataset, PubmedDataset, CiteseerDataset
 from graphml.datasets.Transform import NormalizeFeatures
 from time import perf_counter
 import csv
@@ -14,7 +14,7 @@ model_file = os.path.join(current_file_directory, "best_gcn.pt")
 dev = torch.device(
     "cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-dataset = PubmedDataset(current_file_directory, NormalizeFeatures()).load()
+dataset = CoraDataset(current_file_directory, NormalizeFeatures()).load()
 dataset = dataset.to(dev)
 
 net, loss_fn, optimizer = GCN_model(
