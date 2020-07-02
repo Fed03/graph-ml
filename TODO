@@ -1,14 +1,16 @@
 GraphML:
   Dropout
   Normalization
+  ✔ Measuere epoch time @done(20-07-02 17:32)
+  ✔ Save per epoch results @done(20-07-02 17:32)
   Paper nets:
     ✔ GCN @done(20-06-21 11:40)
     ☐ SAGE
     ☐ GAT
   Datasets Loading:
-    ☐ Cora - Transductive (GCN, GAT)
+    ✔ Cora - Transductive (GCN, GAT) @done(20-06-27 18:23)
     ☐ Citeseer - Transductive (GCN, GAT)
-    ☐ PubMed - Transductive (GCN, GAT)
+    ✔ PubMed - Transductive (GCN, GAT) @done(20-07-02 17:32)
     ☐ PPI - Inductive (GraphSage, GAT)
     ☐ Reddit - Inductive (GraphSage)
     ☐ WoS - Inductive (GraphSage)
