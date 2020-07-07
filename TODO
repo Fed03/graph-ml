@@ -10,7 +10,7 @@ GraphML:
     ☐ GAT inductive
   Datasets Loading:
     ✔ Cora - Transductive (GCN, GAT) @done(20-06-27 18:23)
-    ☐ Citeseer - Transductive (GCN, GAT)
+    ✔ Citeseer - Transductive (GCN, GAT) @done(20-07-07 18:28)
     ✔ PubMed - Transductive (GCN, GAT) @done(20-07-02 17:32)
     ☐ PPI - Inductive (GraphSage, GAT)
     ☐ Reddit - Inductive (GraphSage)
