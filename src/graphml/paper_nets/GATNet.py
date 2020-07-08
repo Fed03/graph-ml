@@ -2,6 +2,7 @@ import torch
 import torch.nn.functional as F
 from typing import Callable, Tuple
 from graphml.layers.gat import MultiHeadGatLayer
+from graphml.utils import add_self_edges_to_adjacency_matrix
 
 class GATNet(torch.nn.Module):
     def __init__(self, input_feature_dim: torch.Size, number_of_classes: int):
@@ -11,8 +12,9 @@ class GATNet(torch.nn.Module):
         self._conv2 = MultiHeadGatLayer(1,64,number_of_classes,activation_function=torch.nn.LogSoftmax(dim=1),dropout_prob=0.6)
 
     def forward(self,input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
-        x = self._conv1(input_matrix,adjacency_coo_matrix)
-        x = self._conv2(x,adjacency_coo_matrix)
+        adj = add_self_edges_to_adjacency_matrix(adjacency_coo_matrix)
+        x = self._conv1(input_matrix,adj)
+        x = self._conv2(x,adj)
         return x
 
 def GAT_model(

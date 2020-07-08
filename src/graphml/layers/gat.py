@@ -35,7 +35,10 @@ class GatLayer(nn.Module):
 
         alpha = self._calc_self_attention(nodes, neighbors, edge_src_idxs)
 
-        neighbors = neighbors * alpha
+        if self._dropout is not None:
+            neighbors = self._dropout(neighbors)
+
+        neighbors = neighbors * alpha  # TODO: add bias?
         return torch.zeros_like(weighted_inputs).scatter_add_(
             src=neighbors, index=edge_src_idxs.view(-1, 1).expand_as(neighbors), dim=0)
 

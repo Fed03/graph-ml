@@ -6,7 +6,7 @@ GraphML:
   Paper nets:
     ✔ GCN @done(20-06-21 11:40)
     ☐ SAGE
-    ☐ GAT transductive
+    ✔ GAT transductive @done(20-07-08 17:34)
     ☐ GAT inductive
   Datasets Loading:
     ✔ Cora - Transductive (GCN, GAT) @done(20-06-27 18:23)
