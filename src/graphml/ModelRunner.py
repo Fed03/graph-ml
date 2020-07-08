@@ -1,16 +1,20 @@
 from __future__ import annotations
+from experiments.gcn import test_acc, test_loss
 import torch
 from time import perf_counter
+
+from graphml.MiniBatchLoader import MiniBatchLoader
 from .datasets.InternalData import InternalData
 from typing import Callable, Optional, Tuple, List
-from dataclasses import dataclass, InitVar, field, asdict, fields
+from dataclasses import dataclass, InitVar, field, fields
 from .metrics import Loss, Accuracy, Metric
 
 
-def accuracy(logits, labels, mask):
-    pred = logits[mask].argmax(dim=1)
-    correct_pred_number = torch.eq(pred, labels[mask]).sum().item()
-    acc = correct_pred_number / mask.sum().item()
+def accuracy(logits, labels):
+    assert len(logits) == len(labels)
+    pred = logits.argmax(dim=1)
+    correct_pred_number = torch.eq(pred, labels).sum().item()
+    acc = correct_pred_number / len(labels)
     return acc
 
 
@@ -30,11 +34,12 @@ class ModelRunner():
 
     def fit(self, epochs: int, run_net: Callable[[torch.nn.Module, InternalData], torch.Tensor], *callbacks: Optional[Callable[[ModelRunner, EpochStat], None]]) -> List[EpochStat]:
         self._total_epochs = epochs
+        self._run_net = run_net
 
         epochs_stats = []
         print("##### Start training #####")
         for epoch in range(epochs):
-            stat = self._run_epoch(epoch, run_net)
+            stat = self._run_epoch(epoch)
             print(stat)
             epochs_stats.append(stat)
             for c in callbacks:
@@ -48,40 +53,37 @@ class ModelRunner():
     def stop(self):
         self._stop_requested = True
 
-    def _run_epoch(self, current_epoch: int, run_net: Callable[[torch.nn.Module, InternalData], torch.Tensor]) -> EpochStat:
+    def _run_epoch(self, current_epoch: int) -> EpochStat:
         start = perf_counter()
 
-        train_loss = self._train(run_net)
-        train_accuracy, validation_accuracy, validation_loss = self._evaluate(
-            run_net)
+        train_loss, train_accuracy = self._train()
+        validation_accuracy, validation_loss = self._evaluate()
 
         end = perf_counter()
 
         return EpochStat(current_epoch, self._total_epochs, train_loss, train_accuracy, validation_loss, validation_accuracy, end-start)
 
-    def _train(self, run_net: Callable[[torch.nn.Module, InternalData], torch.Tensor]) -> float:
+    def _train(self) -> Tuple[float, float]:
         self._net.train()
         self._optimizer.zero_grad()
-        output = run_net(self._net, self._dataset)
+        output = self._run_net(self._net, self._dataset)
         loss = self._loss_fn(output[self._dataset.train_mask],
                              self._dataset.labels[self._dataset.train_mask])
         loss.backward()
         self._optimizer.step()
 
-        return loss.item()
+        return loss.item(), accuracy(output[self._dataset.train_mask], self._dataset.labels[self._dataset.train_mask])
 
-    def _evaluate(self, run_net: Callable[[torch.nn.Module, InternalData], torch.Tensor]) -> Tuple[float, float, float]:
+    def _evaluate(self) -> Tuple[float, float]:
         with torch.no_grad():
             self._net.eval()
-            output = run_net(self._net, self._dataset)
-            train_accuracy = accuracy(
-                output, self._dataset.labels, self._dataset.train_mask)
+            output = self._run_net(self._net, self._dataset)
             validation_accuracy = accuracy(
-                output, self._dataset.labels, self._dataset.validation_mask)
+                output[self._dataset.validation_mask], self._dataset.labels[self._dataset.validation_mask])
             validation_loss = self._loss_fn(
                 output[self._dataset.validation_mask], self._dataset.labels[self._dataset.validation_mask]).item()
 
-            return train_accuracy, validation_accuracy, validation_loss
+            return validation_accuracy, validation_loss
 
     def test(self, run_net: Callable[[torch.nn.Module, InternalData], torch.Tensor], best_model_file: Optional[str] = None) -> Tuple[float, float]:
         print("##### Test Model #####")
@@ -90,7 +92,7 @@ class ModelRunner():
             net.eval()
             output = run_net(net, self._dataset)
             test_accuracy = accuracy(
-                output, self._dataset.labels, self._dataset.test_mask)
+                output[self._dataset.test_mask], self._dataset.labels[self._dataset.test_mask])
             test_loss = self._loss_fn(
                 output[self._dataset.test_mask], self._dataset.labels[self._dataset.test_mask]).item()
 
@@ -131,3 +133,64 @@ class EpochStat():
         field_dict = map(lambda x: (
             x.name, getattr(self, x.name)), fields(self))
         return {k: f.value if isinstance(f, Metric) else f for k, f in field_dict}
+
+
+class MiniBatchModelRunner(ModelRunner):
+    def __init__(self, batch_size: int, dataset: InternalData, model_builder: Callable[[InternalData], Tuple[torch.nn.Module, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]]):
+        super().__init__(dataset, model_builder)
+
+        self._train_loader = MiniBatchLoader(
+            self._dataset.adj_coo_matrix, self._dataset.train_mask, batch_size=50)
+        self._validation_loader = MiniBatchLoader(
+            self._dataset.adj_coo_matrix, self._dataset.validation_mask, batch_size=50)
+
+    """def fit(self, epochs: int, run_net: Callable[[torch.nn.Module, torch.Tensor,List[torch.Tensor]], torch.Tensor], *callbacks: Optional[Callable[[ModelRunner, EpochStat], None]]) -> List[EpochStat]:
+        self._total_epochs = epochs
+
+        epochs_stats = []
+        print("##### Start training #####")
+        for epoch in range(epochs):
+            stat = self._run_epoch(epoch, run_net)
+            print(stat)
+            epochs_stats.append(stat)
+            for c in callbacks:
+                c(self, stat)
+            if self._stop_requested:
+                break
+
+        print("##### Train ended #####")
+        return epochs_stats """
+
+    def _train(self) -> Tuple[float, float]:
+        self._net.train()
+        losses = []
+        accuracies = []
+        for batch in self._train_loader:
+            node_idxs = batch[0]
+
+            self._optimizer.zero_grad()
+            output = self._run_net(self._net, self._dataset, batch)
+            loss = self._loss_fn(output, self._dataset.labels[node_idxs])
+            loss.backward()
+            self._optimizer.step()
+
+            losses.append(loss.item())
+            accuracies.append(
+                accuracy(output, self._dataset.labels[node_idxs]))
+
+        return sum(losses) / len(losses), sum(accuracies) / len(accuracies)
+
+    def _evaluate(self) -> Tuple[float, float]:
+        losses = []
+        accuracies = []
+        with torch.no_grad():
+            self._net.eval()
+            for batch in self._train_loader:
+                output = self._run_net(self._net, self._dataset, batch)
+                
+                validation_accuracy = accuracy(
+                    output, self._dataset.labels, self._dataset.validation_mask)
+                validation_loss = self._loss_fn(
+                    output[self._dataset.validation_mask], self._dataset.labels[self._dataset.validation_mask]).item()
+
+            return train_accuracy, validation_accuracy, validation_loss
