@@ -18,7 +18,7 @@ dataset = CoraDataset(current_file_directory, NormalizeFeatures()).load()
 
 runner = ModelRunner(dataset, lambda d: GCN_model(
     d.adj_coo_matrix, d.features_per_node, d.number_of_classes))
-train_stats = runner.fit(epochs, lambda n, d: n(d.features_vectors),
+train_stats = runner.fit(epochs, lambda net, x, _: net(x),
                          EarlyStopping(patience, lambda x: x.validation_loss), SaveModelOnBestMetric(model_file, lambda x: x.validation_loss))
 test_acc, test_loss = runner.test(
     lambda n, d: n(d.features_vectors), model_file)

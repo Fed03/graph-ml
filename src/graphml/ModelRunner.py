@@ -1,8 +1,6 @@
 from __future__ import annotations
-from experiments.gcn import test_acc, test_loss
 import torch
-from time import perf_counter
-
+from time import perf_counter 
 from graphml.MiniBatchLoader import MiniBatchLoader
 from .datasets.InternalData import InternalData
 from typing import Callable, Optional, Tuple, List
@@ -32,7 +30,7 @@ class ModelRunner():
     def _device(self):
         return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    def fit(self, epochs: int, run_net: Callable[[torch.nn.Module, InternalData], torch.Tensor], *callbacks: Optional[Callable[[ModelRunner, EpochStat], None]]) -> List[EpochStat]:
+    def fit(self, epochs: int, run_net: Callable[[torch.nn.Module, torch.Tensor, List[Torch.Tensor]], torch.Tensor], *callbacks: Optional[Callable[[ModelRunner, EpochStat], None]]) -> List[EpochStat]:
         self._total_epochs = epochs
         self._run_net = run_net
 
@@ -66,7 +64,7 @@ class ModelRunner():
     def _train(self) -> Tuple[float, float]:
         self._net.train()
         self._optimizer.zero_grad()
-        output = self._run_net(self._net, self._dataset)
+        output = self._run_net(self._net, self._dataset.features_vectors,[])
         loss = self._loss_fn(output[self._dataset.train_mask],
                              self._dataset.labels[self._dataset.train_mask])
         loss.backward()
@@ -77,7 +75,7 @@ class ModelRunner():
     def _evaluate(self) -> Tuple[float, float]:
         with torch.no_grad():
             self._net.eval()
-            output = self._run_net(self._net, self._dataset)
+            output = self._run_net(self._net, self._dataset.features_vectors,[])
             validation_accuracy = accuracy(
                 output[self._dataset.validation_mask], self._dataset.labels[self._dataset.validation_mask])
             validation_loss = self._loss_fn(
