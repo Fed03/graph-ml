@@ -64,7 +64,8 @@ class ModelRunner():
     def _train(self) -> Tuple[float, float]:
         self._net.train()
         self._optimizer.zero_grad()
-        output = self._run_net(self._net, self._dataset.features_vectors, [])
+        output = self._run_net(
+            self._net, self._dataset.features_vectors, self._dataset.adj_coo_matrix)
         loss = self._loss_fn(output[self._dataset.train_mask],
                              self._dataset.labels[self._dataset.train_mask])
         loss.backward()
@@ -76,7 +77,7 @@ class ModelRunner():
         with torch.no_grad():
             self._net.eval()
             output = self._run_net(
-                self._net, self._dataset.features_vectors, [])
+                self._net, self._dataset.features_vectors, self._dataset.adj_coo_matrix)
             validation_accuracy = accuracy(
                 output[self._dataset.validation_mask], self._dataset.labels[self._dataset.validation_mask])
             validation_loss = self._loss_fn(
@@ -84,12 +85,13 @@ class ModelRunner():
 
             return validation_accuracy, validation_loss
 
-    def test(self, run_net: Callable[[torch.nn.Module, InternalData], torch.Tensor], best_model_file: Optional[str] = None) -> Tuple[float, float]:
+    def test(self, best_model_file: Optional[str] = None) -> Tuple[float, float]:
         print("##### Test Model #####")
         with torch.no_grad():
             net = torch.load(best_model_file) if best_model_file else self._net
             net.eval()
-            output = run_net(net, self._dataset)
+            output = self._run_net(
+                net, self._dataset.features_vectors, self._dataset.adj_coo_matrix)
             test_accuracy = accuracy(
                 output[self._dataset.test_mask], self._dataset.labels[self._dataset.test_mask])
             test_loss = self._loss_fn(
