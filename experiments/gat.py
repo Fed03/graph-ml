@@ -17,10 +17,15 @@ dataset = CoraDataset(current_file_directory, NormalizeFeatures()).load()
 
 runner = ModelRunner(dataset, lambda d: GAT_model(
     d.features_per_node, d.number_of_classes))
-train_stats = runner.fit(epochs, lambda n, d: n(d.features_vectors, d.adj_coo_matrix),
-                         EarlyStopping(patience, lambda x: x.validation_loss, lambda x: x.validation_accuracy), SaveModelOnBestMetric(model_file, lambda x: x.validation_loss, lambda x: x.validation_accuracy))
-test_acc, test_loss = runner.test(
-    lambda n, d: n(d.features_vectors, d.adj_coo_matrix), model_file)
+train_stats = runner.fit(
+    epochs,
+    lambda net, input, adjs: net(input, adjs),
+    EarlyStopping(
+        patience, lambda x: x.validation_loss, lambda x: x.validation_accuracy),
+    SaveModelOnBestMetric(
+        model_file, lambda x: x.validation_loss, lambda x: x.validation_accuracy)
+)
+test_acc, test_loss = runner.test(model_file)
 
 with open(os.path.join(current_file_directory, "gat_results.csv"), "w", newline="") as csv_file:
     train_stats_dict = map(lambda x: x.asdict(), train_stats)

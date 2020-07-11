@@ -57,12 +57,14 @@ class MultiHeadGatLayer(nn.Module):
     def __init__(self, heads_number: int, input_feature_dim: torch.Size, single_head_output_dim: torch.Size, attention_leakyReLU_slope=0.2, dropout_prob=0., concat=True, activation_function=F.elu):
         super(MultiHeadGatLayer, self).__init__()
 
-        self._attentions = [GatLayer(input_feature_dim, single_head_output_dim,
-                                     attention_leakyReLU_slope, dropout_prob) for _ in range(heads_number)]
-
-        for i, att in enumerate(self._attentions):
-            self.add_module("GAT_head_{}".format(i), att)
-
+        self._attentions = nn.ModuleList([
+            GatLayer(
+                input_feature_dim, 
+                single_head_output_dim,
+                attention_leakyReLU_slope,
+                dropout_prob
+            ) for _ in range(heads_number)
+        ])
         self._concat = concat
         self._activation = activation_function
 

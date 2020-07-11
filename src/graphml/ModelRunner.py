@@ -6,6 +6,7 @@ from .datasets.InternalData import InternalData
 from typing import Callable, Optional, Tuple, List
 from dataclasses import dataclass, InitVar, field, fields
 from .metrics import Loss, Accuracy, Metric
+from functools import reduce
 
 
 def accuracy(logits, labels):
@@ -141,57 +142,31 @@ class MiniBatchModelRunner(ModelRunner):
         super().__init__(dataset, model_builder)
 
         self._train_loader = MiniBatchLoader(
-            self._dataset.adj_coo_matrix, self._dataset.train_mask, batch_size=50)
-        self._validation_loader = MiniBatchLoader(
-            self._dataset.adj_coo_matrix, self._dataset.validation_mask, batch_size=50)
-
-    """def fit(self, epochs: int, run_net: Callable[[torch.nn.Module, torch.Tensor,List[torch.Tensor]], torch.Tensor], *callbacks: Optional[Callable[[ModelRunner, EpochStat], None]]) -> List[EpochStat]:
-        self._total_epochs = epochs
-
-        epochs_stats = []
-        print("##### Start training #####")
-        for epoch in range(epochs):
-            stat = self._run_epoch(epoch, run_net)
-            print(stat)
-            epochs_stats.append(stat)
-            for c in callbacks:
-                c(self, stat)
-            if self._stop_requested:
-                break
-
-        print("##### Train ended #####")
-        return epochs_stats """
+            self._dataset.adj_coo_matrix, self._dataset.train_mask, batch_size=batch_size)
 
     def _train(self) -> Tuple[float, float]:
         self._net.train()
         losses = []
         accuracies = []
-        for batch in self._train_loader:
-            node_idxs = batch[0]
-
+        for target_idxs, input_idxs, adjs in self._train_loader:
             self._optimizer.zero_grad()
-            output = self._run_net(self._net, self._dataset, batch)
-            loss = self._loss_fn(output, self._dataset.labels[node_idxs])
+            output = self._run_net(
+                self._net, self._dataset.features_vectors[input_idxs], *[x.sampled_adj for x in adjs])
+            output = self._batch_output_for_target_idx(
+                output, target_idxs, input_idxs)
+            loss = self._loss_fn(output, self._dataset.labels[target_idxs])
             loss.backward()
             self._optimizer.step()
 
             losses.append(loss.item())
             accuracies.append(
-                accuracy(output, self._dataset.labels[node_idxs]))
+                accuracy(output, self._dataset.labels[target_idxs]))
 
         return sum(losses) / len(losses), sum(accuracies) / len(accuracies)
 
-    def _evaluate(self) -> Tuple[float, float]:
-        losses = []
-        accuracies = []
-        with torch.no_grad():
-            self._net.eval()
-            for batch in self._train_loader:
-                output = self._run_net(self._net, self._dataset, batch)
-                
-                validation_accuracy = accuracy(
-                    output, self._dataset.labels, self._dataset.validation_mask)
-                validation_loss = self._loss_fn(
-                    output[self._dataset.validation_mask], self._dataset.labels[self._dataset.validation_mask]).item()
+    def _batch_output_for_target_idx(self, output, target_idxs, batch_idxs):
+        mask = torch.zeros_like(batch_idxs, dtype=torch.bool)
+        mask = reduce(lambda msk, trg_idx: msk | (
+            batch_idxs == trg_idx), target_idxs, mask)
 
-            return train_accuracy, validation_accuracy, validation_loss
+        return output[mask]
