@@ -14,13 +14,13 @@ class PlanetoidDatasetLoader():
     url = "https://github.com/kimiyoung/planetoid/raw/master/data"
     files = ["allx", "ally", "graph", "test.index", "tx", "ty", "x", "y"]
 
-    def __init__(self, dataset_name: str, base_path: str, transform: Callable[[InternalData], InternalData] = None):
+    def __init__(self, dataset_name: str, base_path: str, *transform: Callable[[InternalData], InternalData]):
         if dataset_name not in ["pubmed", "cora", "citeseer"]:
             raise ValueError("dataset_name")
 
         self._dataset_name = dataset_name
         self._root_path = os.path.join(base_path, "data", self._dataset_name)
-        self._transform = transform if transform else lambda x: x
+        self._transform_funcs = transform
 
     def load(self) -> InternalData:
         self._download_dataset()
@@ -67,7 +67,8 @@ class PlanetoidDatasetLoader():
         else:
             data = torch.load(self._processed_file_path)
 
-        self._internal_data = self._transform(data)
+        for transform in self._transform_funcs:
+            self._internal_data = transform(data)
 
         print(f"{self._pretty_name} dataset correctly loaded.")
 

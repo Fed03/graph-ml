@@ -4,5 +4,5 @@ from .InternalData import InternalData
 
 
 class CoraDataset(PlanetoidDatasetLoader):
-    def __init__(self, base_path: str, transform: Callable[[InternalData], InternalData] = None):
-        super().__init__("cora", base_path, transform)
+    def __init__(self, base_path: str, *transform: Callable[[InternalData], InternalData]):
+        super().__init__("cora", base_path, *transform)
