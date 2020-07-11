@@ -55,7 +55,7 @@ class MiniBatchLoader(DataLoader):
         node_idxs = torch.unique(torch.cat(adjs))
         adjs = [self._map_adjs_to_new_idxs(node_idxs, adj) for adj in adjs]
 
-        return (node_idxs, adjs)
+        return (torch.tensor(node_idxs_batch, device=node_idxs.device), node_idxs, adjs)
 
     def _select_adj_by_src_idxs(self, src_idxs: List[int]) -> torch.Tensor:
         mask = torch.full_like(
