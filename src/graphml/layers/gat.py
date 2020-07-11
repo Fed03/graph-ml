@@ -10,9 +10,12 @@ class GatLayer(nn.Module):
         super(GatLayer, self).__init__()
 
         self._weights_matrix = nn.Parameter(torch.empty(
-            input_feature_dim, output_feature_dim, dtype=torch.float32))
+            input_feature_dim, output_feature_dim, dtype=torch.float))
         self._attention_bias_vector = nn.Parameter(
-            torch.empty(1, 2*output_feature_dim, dtype=torch.float32))
+            torch.empty(1, 2*output_feature_dim, dtype=torch.float))
+        """ self._output_bias = nn.Parameter(
+            torch.empty(output_feature_dim, dtype=torch.float)
+        ) """
 
         self._init_parameters()
 
@@ -20,8 +23,9 @@ class GatLayer(nn.Module):
         self._leaky_relu = nn.LeakyReLU(attention_leakyReLU_slope)
 
     def _init_parameters(self):
-        for parameter in self.parameters():
-            nn.init.xavier_uniform_(parameter)
+        nn.init.xavier_uniform_(self._weights_matrix)
+        nn.init.xavier_uniform_(self._attention_bias_vector)
+        #nn.init.zeros_(self._output_bias)
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
         if self._dropout is not None:
@@ -39,8 +43,10 @@ class GatLayer(nn.Module):
             neighbors = self._dropout(neighbors)
 
         neighbors = neighbors * alpha  # TODO: add bias?
-        return torch.zeros_like(weighted_inputs).scatter_add_(
+        out = torch.zeros_like(weighted_inputs).scatter_add_(
             src=neighbors, index=edge_src_idxs.view(-1, 1).expand_as(neighbors), dim=0)
+
+        return out #+ self._output_bias
 
     def _calc_self_attention(self, nodes: torch.Tensor, neighbors: torch.Tensor, edge_src_idxs: torch.Tensor):
         alpha = torch.mm(
