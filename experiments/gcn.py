@@ -4,7 +4,7 @@ from graphml.ModelRunner import ModelRunner
 from graphml.run_callbacks import EarlyStopping, SaveModelOnBestMetric
 from graphml.paper_nets import GCN_model
 from graphml.datasets import CoraDataset, PubmedDataset, CiteseerDataset
-from graphml.datasets.Transform import NormalizeFeatures
+from graphml.datasets.Transform import AddSelfLoop, NormalizeFeatures
 import csv
 
 model = "gcn"
@@ -14,7 +14,7 @@ patience = 10
 current_file_directory = os.path.dirname(os.path.abspath(__file__))
 model_file = os.path.join(current_file_directory, f"best_{model}.pt")
 
-dataset = CoraDataset(current_file_directory, NormalizeFeatures()).load()
+dataset = CoraDataset(current_file_directory, NormalizeFeatures(), AddSelfLoop()).load()
 
 runner = ModelRunner(dataset, lambda d: GCN_model(
     d.adj_coo_matrix, d.features_per_node, d.number_of_classes))

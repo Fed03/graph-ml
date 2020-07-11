@@ -1,6 +1,6 @@
 from __future__ import annotations
 import torch
-from time import perf_counter 
+from time import perf_counter
 from graphml.MiniBatchLoader import MiniBatchLoader
 from .datasets.InternalData import InternalData
 from typing import Callable, Optional, Tuple, List
@@ -64,7 +64,7 @@ class ModelRunner():
     def _train(self) -> Tuple[float, float]:
         self._net.train()
         self._optimizer.zero_grad()
-        output = self._run_net(self._net, self._dataset.features_vectors,[])
+        output = self._run_net(self._net, self._dataset.features_vectors, [])
         loss = self._loss_fn(output[self._dataset.train_mask],
                              self._dataset.labels[self._dataset.train_mask])
         loss.backward()
@@ -75,7 +75,8 @@ class ModelRunner():
     def _evaluate(self) -> Tuple[float, float]:
         with torch.no_grad():
             self._net.eval()
-            output = self._run_net(self._net, self._dataset.features_vectors,[])
+            output = self._run_net(
+                self._net, self._dataset.features_vectors, [])
             validation_accuracy = accuracy(
                 output[self._dataset.validation_mask], self._dataset.labels[self._dataset.validation_mask])
             validation_loss = self._loss_fn(

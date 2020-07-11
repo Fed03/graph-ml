@@ -4,16 +4,14 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch_scatter import scatter_add
-from graphml.utils import add_self_edges_to_adjacency_matrix, degrees
+from graphml.utils import degrees
 
 
 class GCNLayerFactory():
     def __init__(self, adjency_coo_matrix: torch.Tensor):
-        adj = add_self_edges_to_adjacency_matrix(adjency_coo_matrix)
-
         self._normalized_adj_values = GCNLayerFactory._normalized_adj_values(
-            adj)
-        self._adjency_coo_matrix = adj
+            adjency_coo_matrix)
+        self._adjency_coo_matrix = adjency_coo_matrix
 
     def create(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, activation_function=F.relu, input_dropout=0.) -> GCNLayerFactory.Layer:
         return GCNLayerFactory.Layer(
