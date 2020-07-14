@@ -1,7 +1,6 @@
 import torch
 import torch.nn.functional as F
 from torch import nn
-from graphml.utils import add_self_edges_to_adjacency_matrix
 from torch_scatter import scatter_softmax
 
 
@@ -25,7 +24,7 @@ class GatLayer(nn.Module):
     def _init_parameters(self):
         nn.init.xavier_uniform_(self._weights_matrix)
         nn.init.xavier_uniform_(self._attention_bias_vector)
-        #nn.init.zeros_(self._output_bias)
+        # nn.init.zeros_(self._output_bias)
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor):
         if self._dropout is not None:
@@ -46,7 +45,7 @@ class GatLayer(nn.Module):
         out = torch.zeros_like(weighted_inputs).scatter_add_(
             src=neighbors, index=edge_src_idxs.view(-1, 1).expand_as(neighbors), dim=0)
 
-        return out #+ self._output_bias
+        return out  # + self._output_bias
 
     def _calc_self_attention(self, nodes: torch.Tensor, neighbors: torch.Tensor, edge_src_idxs: torch.Tensor):
         alpha = torch.mm(
@@ -65,7 +64,7 @@ class MultiHeadGatLayer(nn.Module):
 
         self._attentions = nn.ModuleList([
             GatLayer(
-                input_feature_dim, 
+                input_feature_dim,
                 single_head_output_dim,
                 attention_leakyReLU_slope,
                 dropout_prob

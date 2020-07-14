@@ -2,7 +2,7 @@ import csv
 import os
 from graphml.paper_nets import GAT_model
 from graphml.datasets import CoraDataset, PubmedDataset, CiteseerDataset
-from graphml.datasets.Transform import NormalizeFeatures
+from graphml.datasets.Transform import AddSelfLoop, NormalizeFeatures
 from graphml.MiniBatchLoader import MiniBatchLoader
 from graphml.ModelRunner import ModelRunner
 from graphml.run_callbacks import EarlyStopping, SaveModelOnBestMetric
@@ -13,7 +13,8 @@ patience = 100
 current_file_directory = os.path.dirname(os.path.abspath(__file__))
 model_file = os.path.join(current_file_directory, "best_gat.pt")
 
-dataset = CoraDataset(current_file_directory, NormalizeFeatures()).load()
+dataset = CiteseerDataset(current_file_directory,
+                      NormalizeFeatures(), AddSelfLoop()).load()
 
 runner = ModelRunner(dataset, lambda d: GAT_model(
     d.features_per_node, d.number_of_classes))
