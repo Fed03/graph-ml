@@ -1,90 +1,48 @@
 import os
 import torch
 import pickle
-import requests
 import numpy as np
-from tqdm import tqdm
-from typing import List, Callable
 from .InternalData import InternalData
 from scipy.sparse.csr import csr_matrix
+from typing import Any, List, Callable, Union
+from graphml.datasets.BaseDatasetLoader import BaseDatasetLoader
 from graphml.utils import build_adj_matrix_from_dict, make_undirected_adjacency_matrix
 
 
-class PlanetoidDatasetLoader():
-    url = "https://github.com/kimiyoung/planetoid/raw/master/data"
+class PlanetoidDatasetLoader(BaseDatasetLoader):
     files = ["allx", "ally", "graph", "test.index", "tx", "ty", "x", "y"]
 
     def __init__(self, dataset_name: str, base_path: str, *transform: Callable[[InternalData], InternalData]):
         if dataset_name not in ["pubmed", "cora", "citeseer"]:
             raise ValueError("dataset_name")
 
-        self._dataset_name = dataset_name
-        self._root_path = os.path.join(base_path, "data", self._dataset_name)
-        self._transform_funcs = transform
-
-    def load(self) -> InternalData:
-        self._download_dataset()
-        self._process()
-        return self._internal_data
+        super().__init__(dataset_name, base_path, *transform)
 
     @property
-    def _pretty_name(self):
-        return self._dataset_name.capitalize()
+    def _url(self) -> str:
+        return "https://github.com/kimiyoung/planetoid/raw/master/data"
 
     @property
-    def _raw_folder(self):
-        return os.path.join(self._root_path, "raw")
-
-    @property
-    def _processed_file_path(self):
-        return os.path.join(self._root_path, f"{self._dataset_name}.processed.pt")
-
-    @property
-    def _raw_file_names(self) -> List[str]:
+    def _raw_file_names(self) -> Union[List[str], str]:
         return [self._raw_file_name(file) for file in self.files]
 
     def _raw_file_name(self, file_name: str) -> str:
         return f"ind.{self._dataset_name}.{file_name}"
 
-    def _download_dataset(self):
-        if os.path.exists(self._raw_folder):
-            print(f"The {self._pretty_name} dataset is already downloaded.")
-        else:
-            os.makedirs(self._raw_folder)
-
-            print(f"Downloading {self._pretty_name} dataset files...")
-            for file_name in tqdm(self._raw_file_names):
-
-                response = requests.get(f"{self.url}/{file_name}")
-                with open(os.path.join(self._raw_folder, file_name), "wb") as target:
-                    target.write(response.content)
-            print("Download completed.")
-
-    def _process(self):
-        if not os.path.exists(self._processed_file_path):
-            self._internal_data = self._process_raw_files()
-            torch.save(self._internal_data, self._processed_file_path)
-        else:
-            self._internal_data = torch.load(self._processed_file_path)
-
-        for transform in self._transform_funcs:
-            self._internal_data = transform(self._internal_data)
-
-        print(f"{self._pretty_name} dataset correctly loaded.")
-
-    def _process_raw_files(self) -> InternalData:
+    def _process_raw_files(self) -> Any:
         datas = {file_name: self._load_binary_file(
             file_name) for file_name in self.files if file_name != "test.index"}
         datas["test.index"] = self._load_text_file("test.index")
 
-        test_count = datas["test.index"].max().item() - datas["test.index"].min().item() + 1
+        test_count = datas["test.index"].max().item(
+        ) - datas["test.index"].min().item() + 1
 
         features_vectors = torch.cat(
-            [datas["allx"], torch.empty(test_count, datas["allx"].size(-1),dtype=datas["allx"].dtype,device=datas["allx"].device)], dim=0)
+            [datas["allx"], torch.empty(test_count, datas["allx"].size(-1), dtype=datas["allx"].dtype, device=datas["allx"].device)], dim=0)
         features_vectors[datas["test.index"]] = datas["tx"]
 
         labels = torch.cat(
-            [datas["ally"], torch.zeros(test_count, datas["ally"].size(-1),dtype=datas["ally"].dtype,device=datas["ally"].device)], dim=0)
+            [datas["ally"], torch.zeros(test_count, datas["ally"].size(-1), dtype=datas["ally"].dtype, device=datas["ally"].device)], dim=0)
         labels[datas["test.index"]] = datas["ty"]
         labels = labels.argmax(dim=1)
 
@@ -103,7 +61,10 @@ class PlanetoidDatasetLoader():
         test_mask = torch.full((dataset_size,), False, dtype=torch.bool)
         test_mask[test_idxs] = True
 
-        return InternalData(self._pretty_name, features_vectors, labels, make_undirected_adjacency_matrix(datas["graph"]), train_mask, test_mask, val_mask)
+        data = InternalData(self._pretty_name, features_vectors, labels, make_undirected_adjacency_matrix(
+            datas["graph"]), train_mask, test_mask, val_mask)
+
+        return self._apply_transforms(data)
 
     def _load_binary_file(self, file_name: str) -> torch.Tensor:
         path = os.path.join(self._raw_folder, self._raw_file_name(file_name))

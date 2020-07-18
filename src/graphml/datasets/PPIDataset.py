@@ -1,48 +1,73 @@
 import os
-from typing import Callable
+import json
+import torch
+import zipfile
+import numpy as np
+from networkx import DiGraph
+from networkx.readwrite import json_graph
+from graphml.utils import remove_self_loops
+from typing import Callable, Dict, List, Union
 from graphml.datasets.InternalData import InternalData
+from graphml.datasets.BaseDatasetLoader import BaseDatasetLoader
 
 
-class DatasetLoader():
-    def __init__(self, dataset_name: str, base_path: str, *transform: Callable[[InternalData], InternalData]):
-        self._dataset_name = dataset_name
-        self._root_path = os.path.join(base_path, "data", self._dataset_name)
-        self._transform_funcs = transform
+class PPIDataset(BaseDatasetLoader):
+    splits = ["test", "train", "valid"]
 
-    @property
-    def _pretty_name(self):
-        return self._dataset_name.capitalize()
+    def __init__(self, base_path: str, *transform: Callable[[InternalData], InternalData]):
+        super().__init__("ppi", base_path, *transform)
 
     @property
-    def _raw_folder(self):
-        return os.path.join(self._root_path, "raw")
+    def _url(self) -> str:
+        return "https://data.dgl.ai/dataset"
 
     @property
-    def _processed_file_path(self):
-        return os.path.join(self._root_path, f"{self._dataset_name}.processed.pt")
+    def _raw_file_names(self) -> Union[List[str], str]:
+        return "ppi.zip"
 
-    def load(self):
-        self._download_dataset()
-        self._process()
-        return self._internal_data
-
-
-class PPIDataset(DatasetLoader):
-    url = "https://data.dgl.ai/dataset/ppi.zip"
-    
-    def __init__(base_path: str, *transform: Callable[[InternalData], InternalData]):
-        super().__init__("ppi",base_path,*transform)
+    def _split_raw_file(self, split: str, raw_name: str) -> str:
+        return os.path.join(self._raw_folder, f"{split}_{raw_name}")
 
     def _download_dataset(self):
-        if os.path.exists(self._raw_folder):
-            print(f"The {self._pretty_name} dataset is already downloaded.")
-        else:
-            os.makedirs(self._raw_folder)
+        super()._download_dataset()
 
-            print(f"Downloading {self._pretty_name} dataset files...")
-            for file_name in tqdm(self._raw_file_names):
+        raw_file = os.path.join(self._raw_folder, self._raw_file_names)
+        with zipfile.ZipFile(raw_file, 'r') as f:
+            f.extractall(self._raw_folder)
 
-                response = requests.get(f"{self.url}/{file_name}")
-                with open(os.path.join(self._raw_folder, file_name), "wb") as target:
-                    target.write(response.content)
-            print("Download completed.")
+    def _process_raw_files(self) -> Dict[List[InternalData]]:
+        return {split: self._process_split(split) for split in self.splits}
+
+    def _process_split(self, split: str) -> List[InternalData]:
+        with open(self._split_raw_file(split, "graph.json"), 'r') as f:
+            graph = DiGraph(json_graph.node_link_graph(json.load(f)))
+
+        x = np.load(self._split_raw_file(split, "feats.npy"))
+        x = torch.from_numpy(x).to(torch.float)
+
+        y = np.load(self._split_raw_file(split, "labels.npy"))
+        y = torch.from_numpy(y).to(torch.float)
+
+        graphs_idxs = np.load(self._split_raw_file(split, "graph_id.npy"))
+        graphs_idxs = torch.from_numpy(graphs_idxs).to(torch.long)
+
+        graphs_data = []
+        for i, g_id in enumerate(torch.unique(graphs_idxs)):
+            mask = graphs_idxs == g_id
+            adj = self._process_subgraph_adj(mask, graph)
+            data = InternalData(
+                f"{self._pretty_name}_{split}_{i:02d}", x[mask], y[mask], adj)
+
+            graphs_data.append(self._apply_transforms(data))
+
+        return graphs_data
+
+    def _process_subgraph_adj(self, mask: torch.Tensor, graph: DiGraph) -> torch.Tensor:
+        idxs = mask.nonzero().view(-1)
+
+        subgraph = graph.subgraph(idxs.tolist())
+        adj = torch.tensor(list(subgraph.edges)).t()
+        adj = adj - adj.min()
+        adj = remove_self_loops(adj)
+
+        return adj
