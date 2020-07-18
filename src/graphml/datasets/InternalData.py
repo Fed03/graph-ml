@@ -1,5 +1,5 @@
 import torch
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 
 class InternalData(NamedTuple):
@@ -7,9 +7,9 @@ class InternalData(NamedTuple):
     features_vectors: torch.Tensor
     labels: torch.Tensor
     adj_coo_matrix: torch.Tensor
-    train_mask: torch.Tensor
-    test_mask: torch.Tensor
-    validation_mask: torch.Tensor
+    train_mask: Optional[torch.Tensor] = None
+    test_mask: Optional[torch.Tensor] = None
+    validation_mask: Optional[torch.Tensor] = None
 
     def to(self, *args, **kwargs):
         return InternalData._make([t.to(*args, **kwargs) if isinstance(t, torch.Tensor) else t for t in self])

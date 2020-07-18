@@ -31,7 +31,7 @@ class ModelRunner():
     def _device(self):
         return torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    def fit(self, epochs: int, run_net: Callable[[torch.nn.Module, torch.Tensor, List[Torch.Tensor]], torch.Tensor], *callbacks: Optional[Callable[[ModelRunner, EpochStat], None]]) -> List[EpochStat]:
+    def fit(self, epochs: int, run_net: Callable[[torch.nn.Module, torch.Tensor, List[torch.Tensor]], torch.Tensor], *callbacks: Optional[Callable[[ModelRunner, EpochStat], None]]) -> List[EpochStat]:
         self._total_epochs = epochs
         self._run_net = run_net
 
