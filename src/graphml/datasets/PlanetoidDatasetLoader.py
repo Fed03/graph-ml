@@ -62,13 +62,13 @@ class PlanetoidDatasetLoader():
 
     def _process(self):
         if not os.path.exists(self._processed_file_path):
-            data = self._process_raw_files()
-            torch.save(data, self._processed_file_path)
+            self._internal_data = self._process_raw_files()
+            torch.save(self._internal_data, self._processed_file_path)
         else:
-            data = torch.load(self._processed_file_path)
+            self._internal_data = torch.load(self._processed_file_path)
 
         for transform in self._transform_funcs:
-            self._internal_data = transform(data)
+            self._internal_data = transform(self._internal_data)
 
         print(f"{self._pretty_name} dataset correctly loaded.")
 
