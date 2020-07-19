@@ -1,2 +1,2 @@
 from .GCNNet import GCN_model
-from .GATNet import GAT_model
+from .GATTransductiveNet import GAT_transductive_model

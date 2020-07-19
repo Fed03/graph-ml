@@ -1,6 +1,6 @@
 import csv
 import os
-from graphml.paper_nets import GAT_model
+from graphml.paper_nets import GAT_transductive_model
 from graphml.datasets import CoraDataset, PubmedDataset, CiteseerDataset
 from graphml.datasets.Transform import AddSelfLoop, NormalizeFeatures
 from graphml.ModelRunner import ModelRunner, MiniBatchModelRunner
@@ -15,7 +15,7 @@ model_file = os.path.join(current_file_directory, "best_gat.pt")
 dataset = CoraDataset(current_file_directory,
                       NormalizeFeatures(), AddSelfLoop()).load()
 
-l = MiniBatchModelRunner(10, dataset, lambda d: GAT_model(
+l = MiniBatchModelRunner(10, dataset, lambda d: GAT_transductive_model(
     d.features_per_node, d.number_of_classes))
 l.fit(
     epochs,

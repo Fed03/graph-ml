@@ -3,10 +3,9 @@ import torch.nn.functional as F
 from itertools import repeat
 from typing import Callable, Tuple
 from graphml.layers.gat import MultiHeadGatLayer
-from graphml.utils import add_self_edges_to_adjacency_matrix
 
 
-class GATNet(torch.nn.Module):
+class GATTransductiveNet(torch.nn.Module):
     def __init__(self, input_feature_dim: torch.Size, number_of_classes: int):
         super().__init__()
 
@@ -26,11 +25,11 @@ class GATNet(torch.nn.Module):
         return x
 
 
-def GAT_model(
+def GAT_transductive_model(
     input_feature_dim: torch.Size,
     number_of_classes: int,
     learning_rate=.005,
     weight_decay=5e-4
-) -> Tuple[GATNet, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]:
-    net = GATNet(input_feature_dim, number_of_classes)
+) -> Tuple[GATTransductiveNet, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]:
+    net = GATTransductiveNet(input_feature_dim, number_of_classes)
     return net, F.nll_loss, torch.optim.Adam(net.parameters(), learning_rate, weight_decay=weight_decay)
