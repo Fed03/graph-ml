@@ -12,8 +12,8 @@ GraphML:
     ✔ Cora - Transductive (GCN, GAT) @done(20-06-27 18:23)
     ✔ Citeseer - Transductive (GCN, GAT) @done(20-07-07 18:28)
     ✔ PubMed - Transductive (GCN, GAT) @done(20-07-02 17:32)
-    ☐ PPI - Inductive (GraphSage, GAT)
-    ☐ Reddit - Inductive (GraphSage)
+    ✔ PPI - Inductive (GraphSage, GAT) @done(20-07-18 17:21)
+    ✔ Reddit - Inductive (GraphSage) @done(20-07-19 11:46)
     ☐ WoS - Inductive (GraphSage)
   GraphSAGE:
     ✔ Neighborhood Sampler @done(20-06-05 14:22)

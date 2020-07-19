@@ -28,14 +28,7 @@ class PPIDataset(BaseDatasetLoader):
     def _split_raw_file(self, split: str, raw_name: str) -> str:
         return os.path.join(self._raw_folder, f"{split}_{raw_name}")
 
-    def _download_dataset(self):
-        super()._download_dataset()
-
-        raw_file = os.path.join(self._raw_folder, self._raw_file_names)
-        with zipfile.ZipFile(raw_file, 'r') as f:
-            f.extractall(self._raw_folder)
-
-    def _process_raw_files(self) -> Dict[List[InternalData]]:
+    def _process_raw_files(self) -> Dict[str, List[InternalData]]:
         return {split: self._process_split(split) for split in self.splits}
 
     def _process_split(self, split: str) -> List[InternalData]:
@@ -71,3 +64,10 @@ class PPIDataset(BaseDatasetLoader):
         adj = remove_self_loops(adj)
 
         return adj
+
+    def _dowload_file(self, url: str, file_name: str):
+        super()._dowload_file(url,file_name)
+
+        raw_file = os.path.join(self._raw_folder, self._raw_file_names)
+        with zipfile.ZipFile(raw_file, 'r') as f:
+            f.extractall(self._raw_folder)

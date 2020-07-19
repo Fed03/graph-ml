@@ -60,6 +60,7 @@ class BaseDatasetLoader():
 
     def _process(self):
         if not os.path.exists(self._processed_file_path):
+            print("Processing raw dataset files...")
             self._internal_data = self._process_raw_files()
             torch.save(self._internal_data, self._processed_file_path)
         else:
