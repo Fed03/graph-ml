@@ -30,7 +30,12 @@ class BaseDatasetLoader():
 
     @property
     def _processed_file_path(self) -> str:
-        return os.path.join(self._root_path, f"{self._dataset_name}.processed.pt")
+        transform_prefix = ""
+        if self._transform_funcs:
+            transforms_name = map(
+                lambda t: t.__class__.__name__, self._transform_funcs)
+            transform_prefix = "_".join(sorted(transforms_name)) + "."
+        return os.path.join(self._root_path, f"{self._dataset_name}.{transform_prefix.lower()}processed.pt")
 
     def load(self) -> Any:
         self._download_dataset()
