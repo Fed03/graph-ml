@@ -1,0 +1,19 @@
+name: graph-ml
+channels:
+  - conda-forge
+  - pytorch
+  - defaults
+dependencies:
+  - torchvision
+  - cudatoolkit=10.2
+  - pytorch
+  - autopep8
+  - pytest
+  - tqdm
+  - requests
+  - scipy
+  - networkx
+  - pip:
+    - torch-scatter==2.0.5
+prefix: C:\Users\templ\miniconda3\envs\graph-ml
+
