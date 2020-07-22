@@ -6,12 +6,12 @@ import numpy as np
 from tqdm import tqdm
 import scipy.sparse as sp
 from typing import Callable, List, Union
-from graphml.datasets.InternalData import InternalData
+from graphml.datasets.InternalData import GraphData
 from graphml.datasets.BaseDatasetLoader import BaseDatasetLoader
 
 
 class RedditDataset(BaseDatasetLoader):
-    def __init__(self, base_path: str, *transform: Callable[[InternalData], InternalData]):
+    def __init__(self, base_path: str, *transform: Callable[[GraphData], GraphData]):
         super().__init__("reddit", base_path, *transform)
 
     @property
@@ -22,7 +22,7 @@ class RedditDataset(BaseDatasetLoader):
     def _raw_file_names(self) -> Union[List[str], str]:
         return "reddit.zip"
 
-    def _process_raw_files(self) -> InternalData:
+    def _process_raw_files(self) -> GraphData:
         data = np.load(self._raw_file("data.npz"))
         x = torch.from_numpy(data["feature"]).to(torch.float)
         y = torch.from_numpy(data["label"]).to(torch.long)
@@ -37,7 +37,7 @@ class RedditDataset(BaseDatasetLoader):
         val_mask = x_to_split == 2
         test_mask = x_to_split == 3
 
-        data = InternalData(self._pretty_name, x, y, adj,
+        data = GraphData(self._pretty_name, x, y, adj,
                             train_mask, test_mask, val_mask)
 
         return self._apply_transforms(data)

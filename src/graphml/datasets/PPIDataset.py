@@ -8,14 +8,14 @@ from networkx.readwrite import json_graph
 from graphml.datasets.MultiGraphDataset import MultiGraphDataset
 from graphml.utils import remove_self_loops
 from typing import Callable, List, Union
-from graphml.datasets.InternalData import InternalData
+from graphml.datasets.InternalData import GraphData
 from graphml.datasets.BaseDatasetLoader import BaseDatasetLoader
 
 
 class PPIDataset(BaseDatasetLoader):
     splits = ["test", "train", "valid"]
 
-    def __init__(self, base_path: str, *transform: Callable[[InternalData], InternalData]):
+    def __init__(self, base_path: str, *transform: Callable[[GraphData], GraphData]):
         super().__init__("ppi", base_path, *transform)
 
     @property
@@ -37,7 +37,7 @@ class PPIDataset(BaseDatasetLoader):
 
         return MultiGraphDataset(split_data["train"], split_data["valid"], split_data["test"], features_per_node, num_of_classes)
 
-    def _process_split(self, split: str) -> List[InternalData]:
+    def _process_split(self, split: str) -> List[GraphData]:
         with open(self._split_raw_file(split, "graph.json"), 'r') as f:
             graph = DiGraph(json_graph.node_link_graph(json.load(f)))
 
@@ -55,7 +55,7 @@ class PPIDataset(BaseDatasetLoader):
         for i, g_id in enumerate(torch.unique(graphs_idxs)):
             mask = graphs_idxs == g_id
             adj = self._process_subgraph_adj(mask, graph)
-            data = InternalData(
+            data = GraphData(
                 f"{self._pretty_name}_{split}_{i:02d}", x[mask], y[mask], adj)
 
             graphs_data.append(self._apply_transforms(data))

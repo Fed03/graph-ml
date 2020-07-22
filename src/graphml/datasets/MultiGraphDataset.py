@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 from typing import List
-from .InternalData import InternalData
+from .InternalData import GraphData
 
 
 @dataclass
 class MultiGraphDataset():
-    train: List[InternalData]
-    validation: List[InternalData]
-    test: List[InternalData]
+    train: List[GraphData]
+    validation: List[GraphData]
+    test: List[GraphData]
     features_per_node: int
     number_of_classes: int
 

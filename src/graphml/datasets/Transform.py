@@ -1,10 +1,10 @@
 import torch
-from .InternalData import InternalData
+from .InternalData import GraphData
 from graphml.utils import add_self_edges_to_adjacency_matrix, normalize_matrix
 
 
 class Transform():
-    def __call__(self, data_obj: InternalData) -> InternalData:
+    def __call__(self, data_obj: GraphData) -> GraphData:
         d = {}
         for key in data_obj._fields:
             func = getattr(self, f"transform_{key}", None)

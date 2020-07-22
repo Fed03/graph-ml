@@ -2,12 +2,12 @@ import os
 import torch
 import requests
 from tqdm import tqdm
-from .InternalData import InternalData
+from .InternalData import GraphData
 from typing import Any, Callable, List, Union
 
 
 class BaseDatasetLoader():
-    def __init__(self, dataset_name: str, base_path: str, *transform: Callable[[InternalData], InternalData]):
+    def __init__(self, dataset_name: str, base_path: str, *transform: Callable[[GraphData], GraphData]):
         self._dataset_name = dataset_name
         self._root_path = os.path.join(base_path, "data", self._dataset_name)
         self._transform_funcs = transform
@@ -76,7 +76,7 @@ class BaseDatasetLoader():
     def _process_raw_files(self) -> Any:
         raise NotImplementedError
 
-    def _apply_transforms(self, data: InternalData) -> InternalData:
+    def _apply_transforms(self, data: GraphData) -> GraphData:
         for transform in self._transform_funcs:
             data = transform(data)
 

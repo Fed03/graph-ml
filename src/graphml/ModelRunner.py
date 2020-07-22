@@ -2,7 +2,7 @@ from __future__ import annotations
 import torch
 from time import perf_counter
 from graphml.MiniBatchLoader import MiniBatchLoader
-from .datasets.InternalData import InternalData
+from .datasets.InternalData import GraphData
 from typing import Callable, Optional, Tuple, List
 from dataclasses import dataclass, InitVar, field, fields
 from .metrics import Loss, Accuracy, Metric
@@ -18,7 +18,7 @@ def accuracy(logits, labels):
 
 
 class ModelRunner():
-    def __init__(self, dataset: InternalData, model_builder: Callable[[InternalData], Tuple[torch.nn.Module, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]]):
+    def __init__(self, dataset: GraphData, model_builder: Callable[[GraphData], Tuple[torch.nn.Module, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]]):
         self._dataset = dataset.to(self._device)
 
         self._net, self._loss_fn, self._optimizer = model_builder(
@@ -138,7 +138,7 @@ class EpochStat():
 
 
 class MiniBatchModelRunner(ModelRunner):
-    def __init__(self, batch_size: int, dataset: InternalData, model_builder: Callable[[InternalData], Tuple[torch.nn.Module, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]]):
+    def __init__(self, batch_size: int, dataset: GraphData, model_builder: Callable[[GraphData], Tuple[torch.nn.Module, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]]):
         super().__init__(dataset, model_builder)
 
         self._train_loader = MiniBatchLoader(

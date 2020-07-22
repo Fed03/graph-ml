@@ -2,7 +2,7 @@ import torch
 from typing import NamedTuple, Optional
 
 
-class InternalData(NamedTuple):
+class GraphData(NamedTuple):
     name: str
     features_vectors: torch.Tensor
     labels: torch.Tensor
@@ -12,7 +12,7 @@ class InternalData(NamedTuple):
     validation_mask: Optional[torch.Tensor] = None
 
     def to(self, *args, **kwargs):
-        return InternalData._make([t.to(*args, **kwargs) if isinstance(t, torch.Tensor) else t for t in self])
+        return GraphData._make([t.to(*args, **kwargs) if isinstance(t, torch.Tensor) else t for t in self])
 
     @property
     def size(self) -> int:

@@ -2,7 +2,7 @@ import os
 import torch
 import pickle
 import numpy as np
-from .InternalData import InternalData
+from .InternalData import GraphData
 from scipy.sparse.csr import csr_matrix
 from typing import Any, List, Callable, Union
 from graphml.datasets.BaseDatasetLoader import BaseDatasetLoader
@@ -12,7 +12,7 @@ from graphml.utils import build_adj_matrix_from_dict, make_undirected_adjacency_
 class PlanetoidDatasetLoader(BaseDatasetLoader):
     files = ["allx", "ally", "graph", "test.index", "tx", "ty", "x", "y"]
 
-    def __init__(self, dataset_name: str, base_path: str, *transform: Callable[[InternalData], InternalData]):
+    def __init__(self, dataset_name: str, base_path: str, *transform: Callable[[GraphData], GraphData]):
         if dataset_name not in ["pubmed", "cora", "citeseer"]:
             raise ValueError("dataset_name")
 
@@ -61,7 +61,7 @@ class PlanetoidDatasetLoader(BaseDatasetLoader):
         test_mask = torch.full((dataset_size,), False, dtype=torch.bool)
         test_mask[test_idxs] = True
 
-        data = InternalData(self._pretty_name, features_vectors, labels, make_undirected_adjacency_matrix(
+        data = GraphData(self._pretty_name, features_vectors, labels, make_undirected_adjacency_matrix(
             datas["graph"]), train_mask, test_mask, val_mask)
 
         return self._apply_transforms(data)
