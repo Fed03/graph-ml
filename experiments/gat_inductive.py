@@ -1,5 +1,5 @@
+from utils import write_test_results, write_train_epochs_stats
 import os
-import csv
 import torch
 from datetime import datetime
 from graphml.datasets import PPIDataset
@@ -17,19 +17,20 @@ def run_gat_inductive():
     datasets = {
         "ppi": PPIDataset
     }
-    current_file_name = os.path.splitext(os.path.basename(__file__))[0]
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    save_dir = os.path.join(current_dir, current_file_name, dataset_name)
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
+    model_name = os.path.splitext(os.path.basename(__file__))[0]
+    experiments_dir = os.path.dirname(os.path.abspath(__file__))
+    model_dir = os.path.join(experiments_dir, model_name, dataset_name)
 
-    current_time = datetime.now().strftime("%Y%m%dT%H%M%S")
-    model_file = os.path.join(
-        save_dir, f"best_{current_time}.pt")
+    run_id = datetime.now().strftime("%Y%m%dT%H%M%S")
+    run_dir = os.path.join(model_dir, run_id)
+    if not os.path.exists(run_dir):
+        os.makedirs(run_dir)
+
+    model_file = os.path.join(run_dir, f"best_model.pt")
     device = torch.device(
         "cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    dataset = datasets[dataset_name](current_dir,
+    dataset = datasets[dataset_name](experiments_dir,
                                      NormalizeFeatures(), AddSelfLoop()).load()
     dataset = dataset.to(device)
 
@@ -46,20 +47,13 @@ def run_gat_inductive():
         SaveModelOnBestMetric(
             model_file, lambda x: x.validation_loss, lambda x: x.validation_F1)
     )
-    test_results = model.test(dataset.test, model_file)
 
-    with open(os.path.join(save_dir, f"results_{current_time}.csv"), "w", newline="") as csv_file:
-        train_stats_dict = map(lambda x: x.asdict(), train_stats)
-        train_stats_dict = map(
-            lambda x: {**x, "epoch": x["epoch"]+1}, train_stats_dict)
-        train_stats_dict = list(map(
-            lambda x: {k: v for k, v in x.items() if k != 'total_epochs'}, train_stats_dict))
-        writer = csv.DictWriter(csv_file, train_stats_dict[0].keys())
-        writer.writeheader()
-        writer.writerows(train_stats_dict)
+    write_train_epochs_stats(run_dir, train_stats)
 
-    return test_results
+    results = model.test(dataset.test, model_file)
+    write_test_results(model_dir, run_id, results)
 
 
 if __name__ == "__main__":
-    test_acc, test_loss = run_gat_inductive()
+    for _ in range(10):
+        run_gat_inductive()

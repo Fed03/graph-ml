@@ -44,13 +44,13 @@ class GATInductiveNet(torch.nn.Module):
         return x
 
 
-def GAT_inductive_model(
+""" def GAT_inductive_model(
     input_feature_dim: torch.Size,
     number_of_classes: int,
     learning_rate=.005
 ) -> Tuple[GATInductiveNet, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]:
     net = GATInductiveNet(input_feature_dim, number_of_classes)
-    return net, F.nll_loss, torch.optim.Adam(net.parameters(), learning_rate)
+    return net, F.nll_loss, torch.optim.Adam(net.parameters(), learning_rate) """
 
 
 class GATInductiveModel():
