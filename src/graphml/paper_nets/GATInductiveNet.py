@@ -96,8 +96,9 @@ class GATInductiveModel():
     def test(self, test_data: List[GraphData], best_model_file: Optional[str] = None) -> Tuple[Loss, MicroF1]:
         print("##### Test Model #####")
         with torch.no_grad():
-            net = torch.load(best_model_file) if best_model_file else self._net
-            net.eval()
+            if best_model_file:
+                self._net.load_state_dict(torch.load(best_model_file))
+            self._net.eval()
 
             results = []
             for step in test_data:

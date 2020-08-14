@@ -65,6 +65,6 @@ class SaveModelOnBestMetric(BestMetricAudit):
     def __call__(self, model_runner: ModelRunner, current_epoch: EpochStat) -> List[bool]:
         metrics_updated = super().__call__(model_runner, current_epoch)
         if all(metrics_updated):  # any or all?
-            torch.save(model_runner._net, self._file_path)
+            torch.save(model_runner._net.state_dict(), self._file_path)
 
         return metrics_updated
