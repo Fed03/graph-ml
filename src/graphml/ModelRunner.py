@@ -136,13 +136,13 @@ class EpochStat():
 
     def __str__(self):
         infos = [
-            f"Epoch {self.epoch + 1}/{self.total_epochs}",
+            f"Epoch: {self.epoch + 1}/{self.total_epochs}",
             f"Time: {self.elapsed_time:.5f}"
         ]
 
         for field in fields(self):
             val = getattr(self, field.name)
-            if val:
+            if val and isinstance(val, Metric):
                 infos.append(str(val))
 
         return ", ".join(infos)

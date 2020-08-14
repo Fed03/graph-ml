@@ -7,6 +7,7 @@ from graphml.paper_nets.GATInductiveNet import GATInductiveModel
 from graphml.datasets.Transform import AddSelfLoop, NormalizeFeatures
 from graphml.run_callbacks import EarlyStopping, SaveModelOnBestMetric
 
+
 def run_gat_inductive():
     epochs = 100000
     patience = 100
@@ -28,13 +29,12 @@ def run_gat_inductive():
     device = torch.device(
         "cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-
     dataset = datasets[dataset_name](current_dir,
-                                    NormalizeFeatures(), AddSelfLoop()).load()
+                                     NormalizeFeatures(), AddSelfLoop()).load()
     dataset = dataset.to(device)
 
     model = GATInductiveModel(dataset.features_per_node,
-                            dataset.number_of_classes, lr)
+                              dataset.number_of_classes, lr)
     model.to(device)
 
     train_stats = model.fit(
@@ -57,8 +57,9 @@ def run_gat_inductive():
         writer = csv.DictWriter(csv_file, train_stats_dict[0].keys())
         writer.writeheader()
         writer.writerows(train_stats_dict)
-    
+
     return test_results
+
 
 if __name__ == "__main__":
     test_acc, test_loss = run_gat_inductive()
