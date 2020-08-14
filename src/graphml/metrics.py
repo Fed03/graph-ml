@@ -44,6 +44,14 @@ class Accuracy(Metric):
     def better_then(self, other: Accuracy):
         return True if other is None else self.value >= other.value
 
+    @staticmethod
+    def calc(logits: torch.Tensor, labels: torch.Tensor) -> float:
+        assert len(logits) == len(labels)
+        pred = logits.argmax(dim=1)
+        correct_pred_number = torch.eq(pred, labels).sum().item()
+        acc = correct_pred_number / len(labels)
+        return acc 
+
     """ class Calculator(MetricCalculator):
         def calc(self, name: str, logits: torch.Tensor, labels: torch.Tensor) -> Metric:
             return Accuracy(f"{name}_loss", self.accuracy(logits, labels))

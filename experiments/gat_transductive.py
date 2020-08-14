@@ -1,54 +1,93 @@
-import csv
 import os
+import torch
 from datetime import datetime
-from graphml.paper_nets import GAT_transductive_model
-from graphml.datasets import CoraDataset, PubmedDataset, CiteseerDataset
+from graphml.datasets.InternalData import GraphData
+from utils import write_test_results, write_train_epochs_stats
 from graphml.datasets.Transform import AddSelfLoop, NormalizeFeatures
-from graphml.ModelRunner import ModelRunner
 from graphml.run_callbacks import EarlyStopping, SaveModelOnBestMetric
-
-epochs = 100000
-patience = 100
-dataset_name = "citeseer"
-lr = 0.005  # 0.01 for pubmed, 0.005 for the others
-
-datasets = {
-    "cora": CoraDataset,  # 83.0 ± 0.7%
-    "pubmed": PubmedDataset,  # 79.0 ± 0.3%
-    "citeseer": CiteseerDataset  # 72.5 ± 0.7%
-}
-current_file_name = os.path.splitext(os.path.basename(__file__))[0]
-current_dir = os.path.dirname(os.path.abspath(__file__))
-save_dir = os.path.join(current_dir, current_file_name, dataset_name)
-if not os.path.exists(save_dir):
-    os.makedirs(save_dir)
-
-current_time = datetime.now().strftime("%Y%m%dT%H%M%S")
-model_file = os.path.join(
-    save_dir, f"best_{current_time}.pt")
+from graphml.paper_nets.GATTransductiveNet import GATTransductiveModel
+from graphml.datasets import CoraDataset, PubmedDataset, CiteseerDataset
 
 
-dataset = datasets[dataset_name](current_dir,
-                                 NormalizeFeatures(), AddSelfLoop()).load()
+def run_gat_transductive(dataset_name, lr):
+    epochs = 100000
+    patience = 100
 
-runner = ModelRunner(dataset, lambda d: GAT_transductive_model(
-    d.features_per_node, d.number_of_classes, lr))
-train_stats = runner.fit(
-    epochs,
-    lambda net, input, adjs: net(input, adjs),
-    EarlyStopping(
-        patience, lambda x: x.validation_loss, lambda x: x.validation_accuracy),
-    SaveModelOnBestMetric(
-        model_file, lambda x: x.validation_loss, lambda x: x.validation_accuracy)
-)
-test_acc, test_loss = runner.test(model_file)
+    datasets = {
+        "cora": CoraDataset,  # 83.0 ± 0.7%
+        "pubmed": PubmedDataset,  # 79.0 ± 0.3%
+        "citeseer": CiteseerDataset  # 72.5 ± 0.7%
+    }
+    model_name = os.path.splitext(os.path.basename(__file__))[0]
+    experiments_dir = os.path.dirname(os.path.abspath(__file__))
+    model_dir = os.path.join(experiments_dir, model_name, dataset_name)
 
-with open(os.path.join(save_dir, f"results_{current_time}.csv"), "w", newline="") as csv_file:
-    train_stats_dict = map(lambda x: x.asdict(), train_stats)
-    train_stats_dict = map(
-        lambda x: {**x, "epoch": x["epoch"]+1}, train_stats_dict)
-    train_stats_dict = list(map(
-        lambda x: {k: v for k, v in x.items() if k != 'total_epochs'}, train_stats_dict))
-    writer = csv.DictWriter(csv_file, train_stats_dict[0].keys())
-    writer.writeheader()
-    writer.writerows(train_stats_dict)
+    run_id = datetime.now().strftime("%Y%m%dT%H%M%S")
+    run_dir = os.path.join(model_dir, run_id)
+    if not os.path.exists(run_dir):
+        os.makedirs(run_dir)
+
+    model_file = os.path.join(run_dir, f"best_model.pt")
+    device = torch.device(
+        "cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+    dataset = datasets[dataset_name](
+        experiments_dir,
+        NormalizeFeatures(),
+        AddSelfLoop()
+    ).load()
+    dataset = dataset.to(device)
+
+    model = GATTransductiveModel(
+        dataset.features_per_node,
+        dataset.number_of_classes,
+        lr
+    )
+    model.to(device)
+
+    train_data = GraphData(
+        dataset.name,
+        dataset.features_vectors,
+        dataset.labels[dataset.train_mask],
+        dataset.adj_coo_matrix,
+        train_mask=dataset.train_mask
+    )
+    validation_data = GraphData(
+        dataset.name,
+        dataset.features_vectors,
+        dataset.labels[dataset.validation_mask],
+        dataset.adj_coo_matrix,
+        validation_mask=dataset.validation_mask
+    )
+    test_data = GraphData(
+        dataset.name,
+        dataset.features_vectors,
+        dataset.labels[dataset.test_mask],
+        dataset.adj_coo_matrix,
+        test_mask=dataset.test_mask
+    )
+    train_stats = model.fit(
+        epochs,
+        train_data,
+        validation_data,
+        EarlyStopping(
+            patience, lambda x: x.validation_loss, lambda x: x.validation_accuracy),
+        SaveModelOnBestMetric(
+            model_file, lambda x: x.validation_loss, lambda x: x.validation_accuracy)
+    )
+    write_train_epochs_stats(run_dir, train_stats)
+
+    results = model.test(test_data, model_file)
+    write_test_results(model_dir, run_id, results)
+
+
+if __name__ == "__main__":
+    # Citeseer
+    run_gat_transductive("citeseer", 0.005)
+    print("Finished Citeseer")
+    # Cora
+    run_gat_transductive("cora", 0.005)
+    print("Finished Cora")
+    # Pubmed
+    run_gat_transductive("pubmed", 0.01)
+    print("Finished Pubmed")
