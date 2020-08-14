@@ -1,4 +1,4 @@
-import os
+from __future__ import annotations
 import torch
 from typing import Callable, Dict, List
 from dataclasses import dataclass
@@ -12,9 +12,8 @@ class BestMetricAudit(Callable[[ModelRunner, EpochStat], List[bool]]):
         metric: Metric
         on_epoch: int
 
-    _best_metrics: Dict[str, BestMetric] = {}
-
     def __init__(self, *metric_selector: Callable[[EpochStat], Metric]):
+        self._best_metrics: Dict[str, BestMetricAudit.BestMetric] = {}
         self._metrics = metric_selector
         self._counter = 0
 
