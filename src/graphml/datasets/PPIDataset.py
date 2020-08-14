@@ -45,8 +45,7 @@ class PPIDataset(BaseDatasetLoader):
         x = torch.from_numpy(x).to(torch.float)
 
         y = np.load(self._split_raw_file(split, "labels.npy"))
-        y = torch.from_numpy(y).to(torch.float).argmax(
-            dim=1)  # one hot to enumerate
+        y = torch.from_numpy(y).to(torch.long)
 
         graphs_idxs = np.load(self._split_raw_file(split, "graph_id.npy"))
         graphs_idxs = torch.from_numpy(graphs_idxs).to(torch.long)

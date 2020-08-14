@@ -24,7 +24,7 @@ class GraphData(NamedTuple):
 
     @property
     def number_of_classes(self) -> int:
-        return self.labels.max().item() + 1
+        return self.labels.max().item() + 1 if self.labels.dim() == 1 else self.labels.size(-1)
 
     @property
     def train_set(self):
