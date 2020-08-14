@@ -13,6 +13,7 @@ dependencies:
   - requests
   - scipy
   - networkx
+  - scikit-learn
   - pip:
     - torch-scatter==2.0.5
 prefix: C:\Users\templ\miniconda3\envs\graph-ml
