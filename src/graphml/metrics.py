@@ -64,8 +64,8 @@ class MicroF1(Metric):
 
     @staticmethod
     def calc(logits: torch.Tensor, labels: torch.Tensor) -> float:
-        pred = logits.sigmoid().round()
-        return f1_score(labels, pred, average='micro')
+        pred = logits.detach().sigmoid().round()
+        return f1_score(labels.numpy(), pred.numpy(), average='micro')
 
     """ class Calculator(MetricCalculator):
         def calc(self, name: str, logits: torch.Tensor, labels: torch.Tensor) -> Metric:
