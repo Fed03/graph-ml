@@ -5,7 +5,7 @@ from graphml.MiniBatchLoader import MiniBatchLoader
 from .datasets.InternalData import GraphData
 from typing import Callable, Optional, Tuple, List
 from dataclasses import dataclass, InitVar, field, fields
-from .metrics import Loss, Accuracy, Metric
+from .metrics import Loss, Accuracy, Metric, MicroF1
 from functools import reduce
 
 
@@ -107,29 +107,45 @@ class ModelRunner():
 class EpochStat():
     epoch: int
     total_epochs: int
-    train_loss: Loss = field(init=False)
+    elapsed_time: float
+    """ train_loss: Loss = field(init=False)
     train_loss_val: InitVar[float]
     train_accuracy: Accuracy = field(init=False)
     train_accuracy_val: InitVar[float]
     validation_loss: Loss = field(init=False)
     validation_loss_val: InitVar[float]
     validation_accuracy: Accuracy = field(init=False)
-    validation_accuracy_val: InitVar[float]
-    elapsed_time: float
+    validation_accuracy_val: InitVar[float] """
+    train_loss: Loss
+    validation_loss: Loss
+    train_accuracy: Optional[Accuracy] = None
+    validation_accuracy: Optional[Accuracy] = None
+    train_F1: Optional[MicroF1] = None
+    validation_F1: Optional[MicroF1] = None
 
-    def __post_init__(self, train_loss_val: float, train_accuracy_val: float, validation_loss_val: float, validation_accuracy_val: float):
+    """ def __post_init__(self, train_loss_val: float, train_accuracy_val: float, validation_loss_val: float, validation_accuracy_val: float):
         self.train_loss = Loss("Train Loss", train_loss_val)
         self.train_accuracy = Accuracy("Train Accuracy", train_accuracy_val)
         self.validation_loss = Loss("Validation Loss", validation_loss_val)
         self.validation_accuracy = Accuracy(
-            "Validation Accuracy", validation_accuracy_val)
+            "Validation Accuracy", validation_accuracy_val) """
 
     def __repr__(self):
         repr_values = map(lambda x: f"{x!r}", self)
         return f"EpochStat({','.join(repr_values)})"
 
     def __str__(self):
-        return f"Epoch {self.epoch + 1}/{self.total_epochs}, {self.train_loss}, {self.train_accuracy}, {self.validation_loss}, {self.validation_accuracy}, Time: {self.elapsed_time:.5f}"
+        infos = [
+            f"Epoch {self.epoch + 1}/{self.total_epochs}",
+            f"Time: {self.elapsed_time:.5f}"
+        ]
+
+        for field in fields(self):
+            val = getattr(self, field.name)
+            if val:
+                infos.append(str(val))
+
+        return ", ".join(infos)
 
     def asdict(self):
         field_dict = map(lambda x: (
