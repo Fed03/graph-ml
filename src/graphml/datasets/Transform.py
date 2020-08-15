@@ -1,6 +1,6 @@
 import torch
 from .InternalData import GraphData
-from graphml.utils import add_self_edges_to_adjacency_matrix, normalize_matrix
+from graphml.utils import add_self_edges_to_adjacency_matrix, normalize_matrix, sample_neighbors
 
 
 class Transform():
@@ -21,3 +21,11 @@ class NormalizeFeatures(Transform):
 class AddSelfLoop(Transform):
     def transform_adj_coo_matrix(self, adj_coo_matrix: torch.Tensor):
         return add_self_edges_to_adjacency_matrix(adj_coo_matrix)
+
+class SubSampleNeighborhoodSize(Transform):
+    def __init__(self, sample_size: int):
+        self._sample_size = sample_size
+        super().__init__()
+
+    def transform_adj_coo_matrix(self, adj_coo_matrix: torch.Tensor):
+        return sample_neighbors(adj_coo_matrix,self._sample_size)
