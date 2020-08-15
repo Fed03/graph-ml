@@ -10,18 +10,6 @@ from graphml.datasets.InternalData import GraphData
 from graphml.metrics import Loss, MicroF1
 
 
-""" def accuracy(logits, labels):
-    assert len(logits) == len(labels)
-    pred = logits.argmax(dim=1)
-    correct_pred_number = torch.eq(pred, labels).sum().item()
-    acc = correct_pred_number / len(labels)
-    return acc
-
-def micro_f1(logits,labels):
-    pred = logits.sigmoid().round()
-    return f1_score(labels, pred) """
-
-
 class GATInductiveNet(torch.nn.Module):
     def __init__(self, input_feature_dim: torch.Size, number_of_classes: int):
         super().__init__()
@@ -42,15 +30,6 @@ class GATInductiveNet(torch.nn.Module):
             x = conv(x, adj) if idx != 1 else conv(
                 x, adj) + x  # skip conn on inter layer
         return x
-
-
-""" def GAT_inductive_model(
-    input_feature_dim: torch.Size,
-    number_of_classes: int,
-    learning_rate=.005
-) -> Tuple[GATInductiveNet, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]:
-    net = GATInductiveNet(input_feature_dim, number_of_classes)
-    return net, F.nll_loss, torch.optim.Adam(net.parameters(), learning_rate) """
 
 
 class GATInductiveModel():

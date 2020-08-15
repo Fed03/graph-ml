@@ -12,10 +12,10 @@ def run_gat_inductive():
     epochs = 100000
     patience = 100
     dataset_name = "ppi"
-    lr = 0.005  # 0.01 for pubmed, 0.005 for the others
+    lr = 0.005
 
     datasets = {
-        "ppi": PPIDataset
+        "ppi": PPIDataset # 0.973 ± 0.002 micro F1
     }
     model_name = os.path.splitext(os.path.basename(__file__))[0]
     experiments_dir = os.path.dirname(os.path.abspath(__file__))
