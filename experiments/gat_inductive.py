@@ -15,7 +15,7 @@ def run_gat_inductive():
     lr = 0.005
 
     datasets = {
-        "ppi": PPIDataset # 0.973 ± 0.002 micro F1
+        "ppi": PPIDataset  # 0.973 ± 0.002 micro F1
     }
     model_name = os.path.splitext(os.path.basename(__file__))[0]
     experiments_dir = os.path.dirname(os.path.abspath(__file__))
@@ -55,5 +55,6 @@ def run_gat_inductive():
 
 
 if __name__ == "__main__":
-    for _ in range(10):
-        run_gat_inductive()
+    run_gat_inductive()
+    """ for _ in range(10):
+        run_gat_inductive() """

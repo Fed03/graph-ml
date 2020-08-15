@@ -83,7 +83,6 @@ class GATInductiveModel():
             for step in test_data:
                 output = self._net(step.features_vectors, step.adj_coo_matrix)
                 results.append((self._loss_fn(output, step.labels).item(),
-                                #accuracy(output, step.labels),
                                 MicroF1.calc(output, step.labels),
                                 ))
 
@@ -107,12 +106,15 @@ class GATInductiveModel():
         self._net.train()
 
         results = []
-        for step in self._train_data:
+        for batch in self._batch_train_data:
             self._optim.zero_grad()
-            output = self._net(step.features_vectors, step.adj_coo_matrix)
-            loss = self._loss_fn(output, step.labels)
-            #acc = accuracy(output, step.labels)
-            f1 = MicroF1.calc(output, step.labels)
+
+            labels = torch.cat([data.labels for data in batch])
+            output = torch.cat([self._net(data.features_vectors,
+                                data.adj_coo_matrix) for data in batch])
+
+            loss = self._loss_fn(output, labels)
+            f1 = MicroF1.calc(output, labels)
             loss.backward()
             self._optim.step()
 
@@ -139,3 +141,9 @@ class GATInductiveModel():
     def _avg_results(self, results: List[Tuple]) -> Tuple:
         sums = [sum(i) for i in zip(*results)]
         return (x/len(results) for x in sums)
+
+    @property
+    def _batch_train_data(self):
+        b_size = 2
+        for i in range(0, len(self._train_data), b_size):
+            yield self._train_data[i:i+b_size]
