@@ -1,34 +1,91 @@
 from __future__ import annotations
 import os
-from graphml.ModelRunner import ModelRunner
-from graphml.run_callbacks import EarlyStopping, SaveModelOnBestMetric
-from graphml.paper_nets import GCN_model
-from graphml.datasets import CoraDataset, PubmedDataset, CiteseerDataset
+import torch
+from datetime import datetime
+from graphml.paper_nets.GCNNet import GCNModel
+from graphml.datasets.InternalData import GraphData
+from utils import write_test_results, write_train_epochs_stats
 from graphml.datasets.Transform import AddSelfLoop, NormalizeFeatures
-import csv
+from graphml.run_callbacks import EarlyStopping, SaveModelOnBestMetric
+from graphml.datasets import CoraDataset, PubmedDataset, CiteseerDataset
 
-model = "gcn"
-epochs = 200
-patience = 10
+def run_gcn(dataset_name):
+    epochs = 200
+    patience = 10
 
-current_file_directory = os.path.dirname(os.path.abspath(__file__))
-model_file = os.path.join(current_file_directory, f"best_{model}.pt")
+    datasets = {
+        "cora": CoraDataset,  # 81.5%
+        "pubmed": PubmedDataset,  # 79.0%
+        "citeseer": CiteseerDataset  # 70.3%
+    }
+    model_name = os.path.splitext(os.path.basename(__file__))[0]
+    experiments_dir = os.path.dirname(os.path.abspath(__file__))
+    model_dir = os.path.join(experiments_dir, model_name, dataset_name)
 
-dataset = CoraDataset(current_file_directory,
-                      NormalizeFeatures(), AddSelfLoop()).load()
+    run_id = datetime.now().strftime("%Y%m%dT%H%M%S")
+    run_dir = os.path.join(model_dir, run_id)
+    if not os.path.exists(run_dir):
+        os.makedirs(run_dir)
 
-runner = ModelRunner(dataset, lambda d: GCN_model(
-    d.adj_coo_matrix, d.features_per_node, d.number_of_classes))
-train_stats = runner.fit(epochs, lambda net, x, _: net(x),
-                         EarlyStopping(patience, lambda x: x.validation_loss), SaveModelOnBestMetric(model_file, lambda x: x.validation_loss))
-test_acc, test_loss = runner.test(model_file)
+    model_file = os.path.join(run_dir, f"best_model.pt")
+    device = torch.device(
+        "cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-with open(os.path.join(current_file_directory, "results.csv"), "w", newline="") as csv_file:
-    train_stats_dict = map(lambda x: x.asdict(), train_stats)
-    train_stats_dict = map(
-        lambda x: {**x, "epoch": x["epoch"]+1}, train_stats_dict)
-    train_stats_dict = list(map(
-        lambda x: {k: v for k, v in x.items() if k != 'total_epochs'}, train_stats_dict))
-    writer = csv.DictWriter(csv_file, train_stats_dict[0].keys())
-    writer.writeheader()
-    writer.writerows(train_stats_dict)
+    dataset = datasets[dataset_name](
+        experiments_dir,
+        NormalizeFeatures(),
+        AddSelfLoop()
+    ).load()
+    dataset = dataset.to(device)
+
+    model = GCNModel(
+        dataset.adj_coo_matrix,
+        dataset.features_per_node,
+        dataset.number_of_classes
+    )
+    model.to(device)
+
+    train_data = GraphData(
+        dataset.name,
+        dataset.features_vectors,
+        dataset.labels[dataset.train_mask],
+        dataset.adj_coo_matrix,
+        train_mask=dataset.train_mask
+    )
+    validation_data = GraphData(
+        dataset.name,
+        dataset.features_vectors,
+        dataset.labels[dataset.validation_mask],
+        dataset.adj_coo_matrix,
+        validation_mask=dataset.validation_mask
+    )
+    test_data = GraphData(
+        dataset.name,
+        dataset.features_vectors,
+        dataset.labels[dataset.test_mask],
+        dataset.adj_coo_matrix,
+        test_mask=dataset.test_mask
+    )
+    train_stats = model.fit(
+        epochs,
+        train_data,
+        validation_data,
+        EarlyStopping(patience, lambda x: x.validation_loss),
+        SaveModelOnBestMetric(model_file, lambda x: x.validation_loss)
+    )
+
+    write_train_epochs_stats(run_dir, train_stats)
+
+    results = model.test(test_data, model_file)
+    write_test_results(model_dir, run_id, results)
+
+if __name__ == "__main__":
+    # Citeseer
+    run_gcn("citeseer")
+    print("Finished Citeseer")
+    # Cora
+    run_gcn("cora")
+    print("Finished Cora")
+    # Pubmed
+    run_gcn("pubmed")
+    print("Finished Pubmed")
