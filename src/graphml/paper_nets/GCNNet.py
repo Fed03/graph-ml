@@ -27,16 +27,6 @@ class GCNNet(torch.nn.Module):
         x = self._conv2(x)
         return x
 
-def GCN_model(
-    adjency_coo_matrix: torch.Tensor,
-    input_feature_dim: torch.Size,
-    number_of_classes: int,
-    learning_rate=.01,
-    weight_decay=5e-4
-) -> Tuple[GCNNet, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]:
-    net = GCNNet(adjency_coo_matrix, input_feature_dim, number_of_classes)
-    return net, F.nll_loss, torch.optim.Adam(net.parameters(), learning_rate,weight_decay=weight_decay)
-
 
 class GCNModel():
     def __init__(self, adjency_coo_matrix: torch.Tensor,input_feature_dim: torch.Size, number_of_classes: int, learning_rate=.01, weight_decay=5e-4):

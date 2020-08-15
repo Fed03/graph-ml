@@ -7,7 +7,7 @@ GraphML:
     ✔ GCN @done(20-06-21 11:40)
     ☐ SAGE
     ✔ GAT transductive @done(20-07-08 17:34)
-    ☐ GAT inductive
+    ✔ GAT inductive @done(20-08-15 12:03)
   Datasets Loading:
     ✔ Cora - Transductive (GCN, GAT) @done(20-06-27 18:23)
     ✔ Citeseer - Transductive (GCN, GAT) @done(20-07-07 18:28)
