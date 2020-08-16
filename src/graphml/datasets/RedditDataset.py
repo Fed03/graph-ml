@@ -46,12 +46,13 @@ class RedditDataset(BaseDatasetLoader):
         return os.path.join(self._raw_folder, f"{self._dataset_name}_{raw_name}")
 
     def _dowload_file(self, url: str, file_name: str):
+        raw_file = os.path.join(self._raw_folder, file_name)
+
         response = requests.get(url, stream=True)
-        with tqdm.wrapattr(open(os.path.join(self._raw_folder, file_name), "wb"), "write", total=int(response.headers.get('content-length', 0))) as target:
+        with tqdm.wrapattr(open(raw_file, "wb"), "write", total=int(response.headers.get('content-length', 0))) as target:
             for chunk in response.iter_content(chunk_size=4096):
                 target.write(chunk)
 
         print("Unzipping archive...")
-        raw_file = os.path.join(self._raw_folder, self._raw_file_names)
         with zipfile.ZipFile(raw_file, "r") as f:
             f.extractall(self._raw_folder)
