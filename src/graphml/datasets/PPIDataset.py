@@ -6,7 +6,7 @@ import numpy as np
 from networkx import DiGraph
 from networkx.readwrite import json_graph
 from graphml.datasets.MultiGraphDataset import MultiGraphDataset
-from graphml.utils import remove_self_loops
+from graphml.utils import remove_self_loops, make_undirected_adjacency_matrix
 from typing import Callable, List, Union
 from graphml.datasets.InternalData import GraphData
 from graphml.datasets.BaseDatasetLoader import BaseDatasetLoader
@@ -69,7 +69,7 @@ class PPIDataset(BaseDatasetLoader):
         adj = adj - adj.min()
         adj = remove_self_loops(adj)
 
-        return adj
+        return make_undirected_adjacency_matrix(adj)
 
     def _dowload_file(self, url: str, file_name: str):
         super()._dowload_file(url, file_name)

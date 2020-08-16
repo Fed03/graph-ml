@@ -8,6 +8,7 @@ import scipy.sparse as sp
 from typing import Callable, List, Union
 from graphml.datasets.InternalData import GraphData
 from graphml.datasets.BaseDatasetLoader import BaseDatasetLoader
+from graphml.utils import make_undirected_adjacency_matrix
 
 
 class RedditDataset(BaseDatasetLoader):
@@ -37,8 +38,8 @@ class RedditDataset(BaseDatasetLoader):
         val_mask = x_to_split == 2
         test_mask = x_to_split == 3
 
-        data = GraphData(self._pretty_name, x, y, adj,
-                            train_mask, test_mask, val_mask)
+        data = GraphData(self._pretty_name, x, y, make_undirected_adjacency_matrix(adj),
+                         train_mask, test_mask, val_mask)
 
         return self._apply_transforms(data)
 
