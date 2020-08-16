@@ -27,17 +27,13 @@ class BatchStep(NamedTuple):
     sampled_adj: List[torch.Tensor]
 
 class MiniBatchLoader(DataLoader):
-    def __init__(self, adjacency_coo_matrix: torch.Tensor, node_mask: Optional[torch.Tensor] = None, neighborhood_sizes: Union[int, List[int]] = None, **kwargs):
+    def __init__(self, adjacency_coo_matrix: torch.Tensor, neighborhood_sizes: List[int], node_mask: torch.Tensor = None, **kwargs):
         self._adj = adjacency_coo_matrix
 
-        if not neighborhood_sizes:
-            self._neighborhood_sizes = []
-        elif isinstance(neighborhood_sizes, int):
-            self._neighborhood_sizes = [neighborhood_sizes]
-        elif isinstance(neighborhood_sizes, list):
+        if isinstance(neighborhood_sizes, list):
             self._neighborhood_sizes = neighborhood_sizes
         else:
-            raise TypeError("neighborhood_sizes is not Union[int, List[int]]")
+            raise TypeError("neighborhood_sizes is not List[int]")
 
         if node_mask is None:
             nodes_number = adjacency_coo_matrix.max().item() + 1
@@ -49,6 +45,15 @@ class MiniBatchLoader(DataLoader):
                          collate_fn=self._sample_needed_neighbors, **kwargs)
 
     def _sample_needed_neighbors(self, node_idxs_batch: List[int]):
+        trg_idx = torch.tensor(node_idxs_batch, dtype=self._adj.device)
+        
+        batch_idxs = trg_idx
+        adjs = []
+        for _ in reversed(self._neighborhood_sizes):
+            b_adj = self._select_adj_by_src_idxs(batch_idxs)
+            batch_idxs = torch.unique(b_adj)
+            adjs.append(b_adj)
+
         sampled_adj = self._select_adj_by_src_idxs(node_idxs_batch)
 
         if self._neighborhood_sizes:
