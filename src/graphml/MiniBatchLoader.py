@@ -4,7 +4,7 @@ from torch import dtype
 from torch.utils.data import DataLoader
 from graphml.utils import sample_neighbors
 
-
+""" 
 class SampledAdjacency(NamedTuple):
     sampled_adj: torch.Tensor
     original_sampled_adj: torch.Tensor
@@ -18,8 +18,13 @@ class SampledAdjacency(NamedTuple):
         return SampledAdjacency(
             self.sampled_adj.to(*args, **kwargs),
             self.original_sampled_adj.to(*args, **kwargs)
-        )
+        ) """
 
+
+class BatchStep(NamedTuple):
+    target_idxs: torch.Tensor
+    node_idxs: torch.Tensor
+    sampled_adj: List[torch.Tensor]
 
 class MiniBatchLoader(DataLoader):
     def __init__(self, adjacency_coo_matrix: torch.Tensor, node_mask: Optional[torch.Tensor] = None, neighborhood_sizes: Union[int, List[int]] = None, **kwargs):
@@ -52,10 +57,10 @@ class MiniBatchLoader(DataLoader):
         else:
             adjs = [sampled_adj]
 
-        node_idxs = torch.unique(torch.cat(adjs))
+        node_idxs = torch.unique(torch.cat(adjs, dim=1))
         adjs = [self._map_adjs_to_new_idxs(node_idxs, adj) for adj in adjs]
 
-        return (torch.tensor(node_idxs_batch, device=node_idxs.device), node_idxs, adjs)
+        return BatchStep(torch.tensor(node_idxs_batch, device=node_idxs.device),node_idxs, adjs)
 
     def _select_adj_by_src_idxs(self, src_idxs: List[int]) -> torch.Tensor:
         mask = torch.full_like(
@@ -65,9 +70,10 @@ class MiniBatchLoader(DataLoader):
 
         return self._adj.masked_select(mask).view(2, -1)
 
-    def _map_adjs_to_new_idxs(self, node_idxs: torch.Tensor, adj: torch.Tensor) -> SampledAdjacency:
+    def _map_adjs_to_new_idxs(self, node_idxs: torch.Tensor, adj: torch.Tensor) -> torch.Tensor:
         sampled = adj.clone()
         for new_idx, old_idx in enumerate(node_idxs):
             sampled[sampled == old_idx] = new_idx
 
-        return SampledAdjacency(sampled, adj)
+        # return SampledAdjacency(sampled, adj)
+        return sampled
