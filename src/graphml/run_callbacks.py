@@ -3,10 +3,10 @@ import torch
 from typing import Callable, Dict, List
 from dataclasses import dataclass
 from graphml.metrics import Metric
-from .ModelRunner import ModelRunner, EpochStat
+from .ModelRunner import EpochStat
 
 
-class BestMetricAudit(Callable[[ModelRunner, EpochStat], List[bool]]):
+class BestMetricAudit():
     @dataclass
     class BestMetric():
         metric: Metric
@@ -17,7 +17,7 @@ class BestMetricAudit(Callable[[ModelRunner, EpochStat], List[bool]]):
         self._metrics = metric_selector
         self._counter = 0
 
-    def __call__(self, model_runner: ModelRunner, current_epoch: EpochStat) -> List[bool]:
+    def __call__(self, model_runner, current_epoch: EpochStat) -> List[bool]:
         metrics_updated = []
         for selector in self._metrics:
             current_metric = selector(current_epoch)
@@ -43,7 +43,7 @@ class EarlyStopping(BestMetricAudit):
         super().__init__(*metric_selector)
         self._patience = patience
 
-    def __call__(self, model_runner: ModelRunner, current_epoch: EpochStat) -> List[bool]:
+    def __call__(self, model_runner, current_epoch: EpochStat) -> List[bool]:
         metrics_updated = super().__call__(model_runner, current_epoch)
 
         if self._counter >= self._patience:
@@ -61,7 +61,7 @@ class SaveModelOnBestMetric(BestMetricAudit):
         super().__init__(*metric_selector)
         self._file_path = path
 
-    def __call__(self, model_runner: ModelRunner, current_epoch: EpochStat) -> List[bool]:
+    def __call__(self, model_runner, current_epoch: EpochStat) -> List[bool]:
         metrics_updated = super().__call__(model_runner, current_epoch)
         if all(metrics_updated):  # any or all?
             torch.save(model_runner._net.state_dict(), self._file_path)

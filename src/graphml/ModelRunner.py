@@ -9,7 +9,7 @@ from .metrics import Loss, Accuracy, Metric, MicroF1
 from functools import reduce
 
 
-def accuracy(logits, labels):
+""" def accuracy(logits, labels):
     assert len(logits) == len(labels)
     pred = logits.argmax(dim=1)
     correct_pred_number = torch.eq(pred, labels).sum().item()
@@ -102,7 +102,7 @@ class ModelRunner():
                 f"Test Loss {test_loss:.4f}, Test Accuracy {test_accuracy:.4f}")
             return test_loss, test_accuracy
 
-
+ """
 @dataclass
 class EpochStat():
     epoch: int
@@ -153,7 +153,7 @@ class EpochStat():
         return {k: f.value if isinstance(f, Metric) else f for k, f in field_dict}
 
 
-class MiniBatchModelRunner(ModelRunner):
+""" class MiniBatchModelRunner(ModelRunner):
     def __init__(self, batch_size: int, dataset: GraphData, model_builder: Callable[[GraphData], Tuple[torch.nn.Module, Callable[[torch.Tensor, torch.Tensor], torch.Tensor], torch.optim.Optimizer]]):
         super().__init__(dataset, model_builder)
 
@@ -185,4 +185,4 @@ class MiniBatchModelRunner(ModelRunner):
         mask = reduce(lambda msk, trg_idx: msk | (
             batch_idxs == trg_idx), target_idxs, mask)
 
-        return output[mask]
+        return output[mask] """
