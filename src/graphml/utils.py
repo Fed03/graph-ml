@@ -50,7 +50,7 @@ def sample_neighbors(adjency_coo_matrix: torch.Tensor, sample_size: int) -> torc
     groups = scatter_split(neighbor_idxs, node_idxs)
 
     sampled_groups = []
-    for node_id, group in enumerate(groups):
+    for node_id, group in zip(node_idxs.unique(),groups):
         sample_idxs = torch.randint(len(group), (sample_size,))
         sampled_group_neighbors = group[sample_idxs]
         sampled_groups.append(torch.stack([torch.full_like(
