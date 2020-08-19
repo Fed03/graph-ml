@@ -1,3 +1,4 @@
+from time import perf_counter
 from typing import List, Optional, Union, NamedTuple
 import torch
 from torch import dtype
@@ -20,6 +21,20 @@ class SampledAdjacency(NamedTuple):
             self.original_sampled_adj.to(*args, **kwargs)
         ) """
 
+def isin(test:torch.Tensor, trg: torch.Tensor) -> torch.Tensor:
+    trg_uq, uq_idx = torch.unique(trg,return_inverse=True)
+
+    tmp = torch.cat([trg_uq, test])
+    tmp_order = torch.argsort(tmp)
+
+    tmp_sorted = tmp[tmp_order]
+    flag = torch.cat([tmp_sorted[1:] == tmp_sorted[:-1],torch.tensor([False], dtype=torch.bool, device=trg.device)])
+
+    mask = torch.empty_like(tmp, dtype=torch.bool)
+    mask[tmp_order] = flag
+
+    return mask[uq_idx]
+
 
 class BatchStep(NamedTuple):
     target_idxs: torch.Tensor
@@ -39,46 +54,38 @@ class MiniBatchLoader(DataLoader):
             nodes_number = adjacency_coo_matrix.max().item() + 1
             node_mask = torch.arange(nodes_number)
         elif node_mask.dtype == torch.bool:
-            node_mask = node_mask.nonzero().view(-1)
+            node_mask = node_mask.nonzero(as_tuple=False).view(-1)
 
         super().__init__(dataset=node_mask.tolist(),
                          collate_fn=self._sample_needed_neighbors, **kwargs)
 
     def _sample_needed_neighbors(self, node_idxs_batch: List[int]):
-        trg_idx = torch.tensor(node_idxs_batch, dtype=self._adj.device)
+        s = perf_counter()
+        trg_idx = torch.tensor(node_idxs_batch, device=self._adj.device)
         
-        batch_idxs = trg_idx
+        batch_idxs = trg_idx.clone()
         adjs = []
-        for _ in reversed(self._neighborhood_sizes):
-            b_adj = self._select_adj_by_src_idxs(batch_idxs)
-            batch_idxs = torch.unique(b_adj)
-            adjs.append(b_adj)
+        for step_size in reversed(self._neighborhood_sizes):
+            step_adj = self._select_adj_by_src_idxs(batch_idxs)
+            step_adj = sample_neighbors(step_adj,step_size)
+            adjs.append(step_adj)
+            batch_idxs = torch.unique(step_adj)
 
-        sampled_adj = self._select_adj_by_src_idxs(node_idxs_batch)
+        adjs = [self._map_adjs_to_new_idxs(batch_idxs, adj) for adj in adjs]
 
-        if self._neighborhood_sizes:
-            adjs = [sample_neighbors(sampled_adj, size)
-                    for size in self._neighborhood_sizes]
-        else:
-            adjs = [sampled_adj]
-
-        node_idxs = torch.unique(torch.cat(adjs, dim=1))
-        adjs = [self._map_adjs_to_new_idxs(node_idxs, adj) for adj in adjs]
-
-        return BatchStep(torch.tensor(node_idxs_batch, device=node_idxs.device),node_idxs, adjs)
+        l= trg_idx,batch_idxs,self._map_adjs_to_new_idxs(batch_idxs, trg_idx.clone()),reversed(adjs)
+        print(f"mini {(perf_counter() -s)}")
+        return l
 
     def _select_adj_by_src_idxs(self, src_idxs: List[int]) -> torch.Tensor:
-        mask = torch.full_like(
-            self._adj[0], False, dtype=torch.bool, device=self._adj.device)
-        for src_idx in src_idxs:
-            mask |= self._adj[0] == src_idx
+        mask = isin(src_idxs,self._adj[0])
 
-        return self._adj.masked_select(mask).view(2, -1)
+        l = self._adj[:,mask]
+        return l
 
     def _map_adjs_to_new_idxs(self, node_idxs: torch.Tensor, adj: torch.Tensor) -> torch.Tensor:
-        sampled = adj.clone()
         for new_idx, old_idx in enumerate(node_idxs):
-            sampled[sampled == old_idx] = new_idx
+            adj[adj == old_idx] = new_idx
 
         # return SampledAdjacency(sampled, adj)
-        return sampled
+        return adj
