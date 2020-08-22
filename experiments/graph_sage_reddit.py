@@ -3,7 +3,7 @@ import os
 import torch
 from datetime import datetime
 
-from graphml.paper_nets.GraphSageNet import GraphSageSupervisedModel
+from graphml.paper_nets.GraphSageNet import GraphSageRedditSupervisedModel
 from graphml.datasets.InternalData import GraphData
 from utils import write_test_results, write_train_epochs_stats
 from graphml.datasets.Transform import SubSampleNeighborhoodSize
@@ -37,7 +37,7 @@ def run_sage(dataset_name):
     ).load()
     dataset = dataset.to(device)
 
-    model = GraphSageSupervisedModel(
+    model = GraphSageRedditSupervisedModel(
         dataset.features_per_node,
         dataset.number_of_classes
     )

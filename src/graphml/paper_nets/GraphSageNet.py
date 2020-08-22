@@ -43,7 +43,7 @@ class GraphSageNet(torch.nn.Module):
         return x
 
 
-class GraphSageSupervisedModel():
+class GraphSageRedditSupervisedModel():
     def __init__(self, input_feature_dim: torch.Size, number_of_classes: int, learning_rate=.01):
         self._net = GraphSageNet(input_feature_dim, number_of_classes)
         self._loss_fn = F.cross_entropy
@@ -53,22 +53,22 @@ class GraphSageSupervisedModel():
         self._stop_requested = False
 
     # pull up
-    def to(self, *args, **kwargs) -> GraphSageSupervisedModel:
+    def to(self, *args, **kwargs) -> GraphSageRedditSupervisedModel:
         self._net.to(*args, **kwargs)
         return self
 
-    def fit(self, epochs: int, train_data: GraphData, validation_data: GraphData, *callbacks: Optional[Callable[[GraphSageSupervisedModel, EpochStat], None]]) -> List[EpochStat]:
+    def fit(self, epochs: int, train_data: GraphData, validation_data: GraphData, *callbacks: Optional[Callable[[GraphSageRedditSupervisedModel, EpochStat], None]]) -> List[EpochStat]:
         self._train_data = train_data
         self._validation_data = validation_data
         self._train_loader: List[BatchStep] = MiniBatchLoader(
             self._train_data.adj_coo_matrix, [25, 10], self._train_data.train_mask, batch_size=512, shuffle=True)
         self._validation_loader: List[BatchStep] = MiniBatchLoader(
-            self._validation_data.adj_coo_matrix, [-1,-1], self._validation_data.validation_mask, batch_size=512, shuffle=False)
+            self._validation_data.adj_coo_matrix, [-1, -1], self._validation_data.validation_mask, batch_size=512, shuffle=False)
 
         return self._internal_fit(epochs, *callbacks)
 
     # pull up
-    def _internal_fit(self, epochs: int, *callbacks: Optional[Callable[[GraphSageSupervisedModel, EpochStat], None]]) -> List[EpochStat]:
+    def _internal_fit(self, epochs: int, *callbacks: Optional[Callable[[GraphSageRedditSupervisedModel, EpochStat], None]]) -> List[EpochStat]:
         self._total_epochs = epochs
         epochs_stats = []
         print("##### Start training #####")
@@ -126,7 +126,6 @@ class GraphSageSupervisedModel():
 
             results = []
             for trg_idx, batch_idxs, sampled_idx, adjs in tqdm(self._validation_loader):
-                self._optim.zero_grad()
                 output = self._net(
                     self._validation_data.features_vectors[batch_idxs], *adjs)
                 output = output[sampled_idx]
@@ -144,7 +143,7 @@ class GraphSageSupervisedModel():
     def test(self, test_data: GraphData, best_model_file: Optional[str] = None) -> Tuple[Loss, MicroF1]:
         print("##### Test Model #####")
         loader = MiniBatchLoader(
-            test_data.adj_coo_matrix, [-1,-1], test_data.test_mask, batch_size=512, shuffle=False)
+            test_data.adj_coo_matrix, [-1, -1], test_data.test_mask, batch_size=512, shuffle=False)
         with torch.no_grad():
             if best_model_file:
                 self._net.load_state_dict(torch.load(best_model_file))
@@ -152,7 +151,6 @@ class GraphSageSupervisedModel():
             self._net.eval()
             results = []
             for trg_idx, batch_idxs, sampled_idx, adjs in tqdm(loader):
-                self._optim.zero_grad()
                 output = self._net(
                     test_data.features_vectors[batch_idxs], *adjs)
                 output = output[sampled_idx]

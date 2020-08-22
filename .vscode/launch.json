@@ -5,10 +5,24 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "GraphSAGE",
+      "name": "GraphSAGE Reddit",
       "type": "python",
       "request": "launch",
-      "program": "${workspaceFolder}/experiments/graph_sage.py",
+      "program": "${workspaceFolder}/experiments/graph_sage_reddit.py",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "GraphSAGE PPI",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/experiments/graph_sage_ppi.py",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "GAT induct",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/experiments/gat_inductive.py",
       "console": "integratedTerminal"
     }
   ]
