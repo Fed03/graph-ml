@@ -9,6 +9,7 @@ from graphml.datasets.Transform import AddSelfLoop, NormalizeFeatures
 from graphml.run_callbacks import EarlyStopping, SaveModelOnBestMetric
 from graphml.datasets import CoraDataset, PubmedDataset, CiteseerDataset
 
+
 def run_gcn(dataset_name):
     epochs = 200
     patience = 10
@@ -79,13 +80,15 @@ def run_gcn(dataset_name):
     results = model.test(test_data, model_file)
     write_test_results(model_dir, run_id, results)
 
+
 if __name__ == "__main__":
-    # Citeseer
-    run_gcn("citeseer")
-    print("Finished Citeseer")
-    # Cora
-    run_gcn("cora")
-    print("Finished Cora")
-    # Pubmed
-    run_gcn("pubmed")
-    print("Finished Pubmed")
+    for _ in range(100):
+        # Citeseer
+        run_gcn("citeseer")
+        print("Finished Citeseer")
+        # Cora
+        run_gcn("cora")
+        print("Finished Cora")
+        # Pubmed
+        run_gcn("pubmed")
+        print("Finished Pubmed")

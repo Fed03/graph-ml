@@ -82,12 +82,13 @@ def run_gat_transductive(dataset_name, lr):
 
 
 if __name__ == "__main__":
-    # Citeseer
-    run_gat_transductive("citeseer", 0.005)
-    print("Finished Citeseer")
-    # Cora
-    run_gat_transductive("cora", 0.005)
-    print("Finished Cora")
-    # Pubmed
-    run_gat_transductive("pubmed", 0.01)
-    print("Finished Pubmed")
+    for _ in range(100):
+        # Citeseer
+        run_gat_transductive("citeseer", 0.005)
+        print("Finished Citeseer")
+        # Cora
+        run_gat_transductive("cora", 0.005)
+        print("Finished Cora")
+        # Pubmed
+        run_gat_transductive("pubmed", 0.01)
+        print("Finished Pubmed")
