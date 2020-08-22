@@ -72,7 +72,11 @@ class MicroF1(Metric):
 
     @staticmethod
     def calc(logits: torch.Tensor, labels: torch.Tensor) -> float:
-        pred = logits.detach().sigmoid().round()
+        pred = logits.detach()
+        if labels.dim() == 1:
+            pred = pred.argmax(dim=1)
+        else: 
+            pred = pred.sigmoid().round()
         return f1_score(labels.cpu().numpy(), pred.cpu().numpy(), average='micro')
 
     """ class Calculator(MetricCalculator):
