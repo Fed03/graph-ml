@@ -21,7 +21,7 @@ class MeanAggregator(Aggregator):
         nn.init.xavier_uniform_(self._weights_matrix)
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor) -> torch.Tensor:
-        adj = add_self_edges_to_adjacency_matrix(adjacency_coo_matrix)
+        adj = add_self_edges_to_adjacency_matrix(adjacency_coo_matrix, len(input_matrix))
 
         edge_src_idxs = adj[0]
         neighbors = input_matrix.index_select(index=adj[1], dim=0)

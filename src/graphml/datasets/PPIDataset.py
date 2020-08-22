@@ -62,7 +62,7 @@ class PPIDataset(BaseDatasetLoader):
         return graphs_data
 
     def _process_subgraph_adj(self, mask: torch.Tensor, graph: DiGraph) -> torch.Tensor:
-        idxs = mask.nonzero().view(-1)
+        idxs = mask.nonzero(as_tuple=False).view(-1)
 
         subgraph = graph.subgraph(idxs.tolist())
         adj = torch.tensor(list(subgraph.edges)).t()

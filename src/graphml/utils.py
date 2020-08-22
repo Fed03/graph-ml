@@ -18,8 +18,8 @@ def remove_self_loops(adjency_coo_matrix: torch.Tensor) -> torch.Tensor:
     return adjency_coo_matrix[:, mask]
 
 
-def add_self_edges_to_adjacency_matrix(adjency_coo_matrix: torch.Tensor) -> torch.Tensor:
-    max_node_id = adjency_coo_matrix.max().item()
+def add_self_edges_to_adjacency_matrix(adjency_coo_matrix: torch.Tensor, num_nodes: int = None) -> torch.Tensor:
+    max_node_id = num_nodes - 1 if num_nodes else adjency_coo_matrix.max().item()
     self_edges = torch.arange(
         max_node_id + 1, dtype=adjency_coo_matrix.dtype, device=adjency_coo_matrix.device).repeat(2, 1)
 
