@@ -1,11 +1,15 @@
 import torch
 from torch import nn
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pack_sequence, pad_packed_sequence
 from torch_scatter import scatter_mean, scatter_max
 from graphml.utils import add_self_edges_to_adjacency_matrix, scatter_split
+from enum import Enum, auto
 
+class ModelSize(Enum):
+    SMALL = auto()
+    BIG = auto()
 
 class Aggregator(nn.Module):
     pass
@@ -31,8 +35,15 @@ class MeanAggregator(Aggregator):
 
 
 class MaxPoolAggregator(Aggregator):
-    def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, hidden_feature_dim: torch.Size):
+    _sizes: Dict[ModelSize, int] = {
+        ModelSize.SMALL: 512,
+        ModelSize.BIG: 1024
+    }
+
+    def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, hidden_feature_dim: Optional[int] = None, model_size: Optional[ModelSize] = None):
         super().__init__()
+
+        hidden_feature_dim = hidden_feature_dim if hidden_feature_dim else self._sizes[model_size]
 
         self._weights_matrix = nn.Parameter(torch.empty(
             input_feature_dim + hidden_feature_dim, output_feature_dim, dtype=torch.float32))
@@ -54,8 +65,15 @@ class MaxPoolAggregator(Aggregator):
 
 
 class LstmAggregator(Aggregator):
-    def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, hidden_feature_dim: torch.Size):
+    _sizes: Dict[ModelSize, int] = {
+        ModelSize.SMALL: 128,
+        ModelSize.BIG: 256
+    }
+
+    def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size, hidden_feature_dim: Optional[int] = None, model_size: Optional[ModelSize] = None):
         super().__init__()
+
+        hidden_feature_dim = hidden_feature_dim if hidden_feature_dim else self._sizes[model_size]
 
         self._weights_matrix = nn.Parameter(torch.empty(
             input_feature_dim + hidden_feature_dim, output_feature_dim, dtype=torch.float32))
