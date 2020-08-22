@@ -44,18 +44,8 @@ def run_sage(dataset_name):
     model.to(device)
 
     train_data = dataset
-    validation_data = GraphData(
-        dataset.name,
-        dataset.features_vectors[dataset.validation_mask],
-        dataset.labels[dataset.validation_mask],
-        dataset.adj_coo_matrix
-    )
-    test_data = GraphData(
-        dataset.name,
-        dataset.features_vectors[dataset.test_mask],
-        dataset.labels[dataset.test_mask],
-        dataset.adj_coo_matrix
-    )
+    validation_data = dataset
+    test_data = dataset
     train_stats = model.fit(
         epochs,
         train_data,

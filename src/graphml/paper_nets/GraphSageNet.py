@@ -9,6 +9,7 @@ from graphml.datasets.InternalData import GraphData
 from graphml.layers.graph_sage import GraphSAGELayer
 import torch
 import torch.nn.functional as F
+from tqdm import tqdm
 
 from graphml.layers.sage_aggregators import MeanAggregator
 from graphml.metrics import Loss, MicroF1
@@ -32,7 +33,7 @@ class GraphSageNet(torch.nn.Module):
             GraphSAGELayer(MeanAggregator(256, number_of_classes), lambda x: x)
         ])
 
-    def forward(self, input_matrix: torch.Tensor, *adjs: torch.Tensor):
+    def forward(self, input_matrix: torch.Tensor, *adjs):
         assert len(adjs) == len(self._convs) or len(adjs) == 1
         adjs = adjs if len(adjs) != 1 else repeat(adjs[0], len(self._convs))
 
@@ -59,8 +60,10 @@ class GraphSageSupervisedModel():
     def fit(self, epochs: int, train_data: GraphData, validation_data: GraphData, *callbacks: Optional[Callable[[GraphSageSupervisedModel, EpochStat], None]]) -> List[EpochStat]:
         self._train_data = train_data
         self._validation_data = validation_data
-        self._batch_loader: List[BatchStep] = MiniBatchLoader(
-            self._train_data.adj_coo_matrix, self._train_data.train_mask, [25, 10], batch_size=5, shuffle=True)
+        self._train_loader: List[BatchStep] = MiniBatchLoader(
+            self._train_data.adj_coo_matrix, [25, 10], self._train_data.train_mask, batch_size=512, shuffle=True)
+        self._validation_loader: List[BatchStep] = MiniBatchLoader(
+            self._validation_data.adj_coo_matrix, [-1,-1], self._validation_data.validation_mask, batch_size=512, shuffle=False)
 
         return self._internal_fit(epochs, *callbacks)
 
@@ -100,14 +103,12 @@ class GraphSageSupervisedModel():
         self._net.train()
 
         results = []
-        for batch in self._batch_loader:
+        for trg_idx, batch_idxs, sampled_idx, adjs in tqdm(self._train_loader):
             self._optim.zero_grad()
-
             output = self._net(
-                self._train_data.features_vectors[batch.node_idxs], *batch.sampled_adj)
-            output = get_target_idxs_output(output, batch)
-
-            labels = self._train_data.labels[batch.target_idxs]
+                self._train_data.features_vectors[batch_idxs], *adjs)
+            output = output[sampled_idx]
+            labels = self._train_data.labels[trg_idx]
 
             loss = self._loss_fn(output, labels)
             f1 = MicroF1.calc(output, labels)
@@ -123,20 +124,48 @@ class GraphSageSupervisedModel():
         with torch.no_grad():
             self._net.eval()
 
-            output = self._net(self._validation_data.features_vectors, self._validation_data.adj_coo_matrix)
+            results = []
+            for trg_idx, batch_idxs, sampled_idx, adjs in tqdm(self._validation_loader):
+                self._optim.zero_grad()
+                output = self._net(
+                    self._validation_data.features_vectors[batch_idxs], *adjs)
+                output = output[sampled_idx]
+                labels = self._validation_data.labels[trg_idx]
 
-            return Loss("Validation Loss", self._loss_fn(output, self._validation_data.labels).item()), MicroF1("Validation F1", MicroF1.calc(output, self._validation_data.labels))
+                loss = self._loss_fn(output, labels)
+                f1 = MicroF1.calc(output, labels)
+
+                results.append((loss.item(), f1))
+
+            avg_loss, avg_f1 = self._avg_results(results)
+
+            return Loss("Validation Loss", avg_loss), MicroF1("Validation F1", avg_f1)
 
     def test(self, test_data: GraphData, best_model_file: Optional[str] = None) -> Tuple[Loss, MicroF1]:
         print("##### Test Model #####")
+        loader = MiniBatchLoader(
+            test_data.adj_coo_matrix, [-1,-1], test_data.test_mask, batch_size=512, shuffle=False)
         with torch.no_grad():
             if best_model_file:
                 self._net.load_state_dict(torch.load(best_model_file))
-            
-            self._net.eval()
-            output = self._net(test_data.features_vectors, test_data.adj_coo_matrix)
 
-            result = Loss("Test Loss", self._loss_fn(output, test_data.labels).item()), MicroF1("Test F1", MicroF1.calc(output, test_data.labels))
+            self._net.eval()
+            results = []
+            for trg_idx, batch_idxs, sampled_idx, adjs in tqdm(loader):
+                self._optim.zero_grad()
+                output = self._net(
+                    test_data.features_vectors[batch_idxs], *adjs)
+                output = output[sampled_idx]
+                labels = test_data.labels[trg_idx]
+
+                loss = self._loss_fn(output, labels)
+                f1 = MicroF1.calc(output, labels)
+
+                results.append((loss.item(), f1))
+
+            avg_loss, avg_f1 = self._avg_results(results)
+
+            result = Loss("Test Loss", avg_loss), MicroF1("Test F1", avg_f1)
 
             print(f"{result[0]}, {result[1]}")
             return result
