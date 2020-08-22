@@ -1,23 +1,30 @@
+from graphml.layers.sage_aggregators import MeanAggregator, MaxPoolAggregator, ModelSize, LstmAggregator
 from utils import write_test_results, write_train_epochs_stats
 import os
 import torch
 from datetime import datetime
 from graphml.datasets import PPIDataset
 from graphml.paper_nets.GraphSageNet import GraphSagePPISupervisedModel
-from graphml.datasets.Transform import AddSelfLoop, NormalizeFeatures, SubSampleNeighborhoodSize
-from graphml.run_callbacks import EarlyStopping, SaveModelOnBestMetric
+from graphml.datasets.Transform import SubSampleNeighborhoodSize
+from graphml.run_callbacks import SaveModelOnBestMetric
 
 
-def run_sage():
+def run_sage(aggregator_name):
     epochs = 10
     dataset_name = "ppi"
 
     datasets = {
-        "ppi": PPIDataset  # 0.973 ± 0.002 micro F1
+        "ppi": PPIDataset
     }
+    aggrs = {
+        "gcn": lambda input_size, output_size: MeanAggregator(input_size,output_size), # 0.5
+        "pool": lambda input_size, output_size: MaxPoolAggregator(input_size,output_size,model_size=ModelSize.SMALL), # 0.6
+        "lstm": lambda input_size, output_size: LstmAggregator(input_size,output_size,model_size=ModelSize.SMALL) # 0.612
+    }
+
     model_name = os.path.splitext(os.path.basename(__file__))[0]
     experiments_dir = os.path.dirname(os.path.abspath(__file__))
-    model_dir = os.path.join(experiments_dir, model_name, dataset_name)
+    model_dir = os.path.join(experiments_dir, model_name, dataset_name, aggrs[aggregator_name])
 
     run_id = datetime.now().strftime("%Y%m%dT%H%M%S")
     run_dir = os.path.join(model_dir, run_id)

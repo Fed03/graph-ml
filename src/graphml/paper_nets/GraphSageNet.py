@@ -1,6 +1,7 @@
 from __future__ import annotations
 from functools import reduce
 from itertools import repeat
+from src.graphml.layers.sage_aggregators import Aggregator, ModelSize
 from time import perf_counter
 from typing import Callable, List, Optional, Tuple
 from graphml.MiniBatchLoader import BatchStep, MiniBatchLoader
@@ -25,12 +26,12 @@ def get_target_idxs_output(net_output: torch.Tensor, batch_step: BatchStep) -> t
 
 
 class GraphSageNet(torch.nn.Module):
-    def __init__(self, input_feature_dim: torch.Size, number_of_classes: int):
+    def __init__(self, input_feature_dim: torch.Size, number_of_classes: int,aggregator_factory: Callable[[int,int],Aggregator]):
         super().__init__()
 
         self._convs = torch.nn.ModuleList([
-            GraphSAGELayer(MeanAggregator(input_feature_dim, 256)),
-            GraphSAGELayer(MeanAggregator(256, number_of_classes), lambda x: x)
+            GraphSAGELayer(aggregator_factory(input_feature_dim, 256)),
+            GraphSAGELayer(aggregator_factory(256, number_of_classes), lambda x: x)
         ])
 
     def forward(self, input_matrix: torch.Tensor, *adjs):
@@ -174,8 +175,8 @@ class GraphSageRedditSupervisedModel():
 
 
 class GraphSagePPISupervisedModel():
-    def __init__(self, input_feature_dim: torch.Size, number_of_classes: int, learning_rate=.01):
-        self._net = GraphSageNet(input_feature_dim, number_of_classes)
+    def __init__(self, input_feature_dim: torch.Size, number_of_classes: int, aggregator_factory: Callable[[int,int],Aggregator], learning_rate=.01):
+        self._net = GraphSageNet(input_feature_dim, number_of_classes, aggregator_factory)
         self._loss_fn = F.binary_cross_entropy_with_logits
         self._optim = torch.optim.Adam(
             self._net.parameters(), learning_rate)
