@@ -4,24 +4,24 @@ import os
 import torch
 from datetime import datetime
 from graphml.datasets import PPIDataset
-from graphml.paper_nets.GraphSageNet import GraphSagePPISupervisedModel
-from graphml.datasets.Transform import SubSampleNeighborhoodSize
+from graphml.paper_nets.GraphSageUnsupervisedNet import GraphSagePPIUnsupervisedModel
+from graphml.datasets.Transform import SubSampleNeighborhoodSize, CalcPositivePairs
 from graphml.run_callbacks import SaveModelOnBestMetric
 
 
 def run_sage(aggregator_name):
-    epochs = 10
+    epochs = 1
     dataset_name = "ppi"
 
     datasets = {
         "ppi": PPIDataset
     }
     aggrs = {
-        # 0.5
+        # 0.465
         "gcn": lambda input_size, output_size: MeanAggregator(input_size, output_size),
-        # 0.6
+        # 0.502
         "pool": lambda input_size, output_size: MaxPoolAggregator(input_size, output_size, model_size=ModelSize.SMALL),
-        # 0.612
+        # 0.482
         "lstm": lambda input_size, output_size: LstmAggregator(input_size, output_size, model_size=ModelSize.SMALL)
     }
 
@@ -40,11 +40,10 @@ def run_sage(aggregator_name):
         "cuda") if torch.cuda.is_available() else torch.device("cpu")
 
     dataset = datasets[dataset_name](experiments_dir,
-                                     SubSampleNeighborhoodSize(128)).load()
+                                     SubSampleNeighborhoodSize(128), CalcPositivePairs(50, 5)).load()
     dataset = dataset.to(device)
 
-    model = GraphSagePPISupervisedModel(
-        dataset.features_per_node, dataset.number_of_classes, aggrs[aggregator_name])
+    model = GraphSagePPIUnsupervisedModel(dataset.features_per_node,dataset.number_of_classes,aggrs[aggregator_name],1e-5)
     model.to(device)
 
     train_stats = model.fit(
@@ -63,3 +62,5 @@ def run_sage(aggregator_name):
 
 if __name__ == "__main__":
     run_sage("gcn")
+    """ for _ in range(10):
+        run_gat_inductive() """
