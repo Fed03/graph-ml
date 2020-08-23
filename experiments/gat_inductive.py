@@ -55,6 +55,5 @@ def run_gat_inductive():
 
 
 if __name__ == "__main__":
-    run_gat_inductive()
-    """ for _ in range(10):
-        run_gat_inductive() """
+    for _ in range(100):
+        run_gat_inductive()

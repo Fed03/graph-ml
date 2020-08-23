@@ -27,8 +27,10 @@ class GATInductiveNet(torch.nn.Module):
         x = input_matrix
         adjs = adjs if len(adjs) != 1 else repeat(adjs[0], len(self._convs))
         for idx, conv, adj in zip(range(len(self._convs)), self._convs, adjs):
-            x = conv(x, adj) if idx != 1 else conv(
-                x, adj) + x  # skip conn on inter layer
+            result = conv(x, adj)
+            if idx == 1:
+                result += x
+            x = result
         return x
 
 
