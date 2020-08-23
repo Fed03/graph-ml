@@ -17,14 +17,18 @@ def run_sage(aggregator_name):
         "ppi": PPIDataset
     }
     aggrs = {
-        "gcn": lambda input_size, output_size: MeanAggregator(input_size,output_size), # 0.5
-        "pool": lambda input_size, output_size: MaxPoolAggregator(input_size,output_size,model_size=ModelSize.SMALL), # 0.6
-        "lstm": lambda input_size, output_size: LstmAggregator(input_size,output_size,model_size=ModelSize.SMALL) # 0.612
+        # 0.5
+        "gcn": lambda input_size, output_size: MeanAggregator(input_size, output_size),
+        # 0.6
+        "pool": lambda input_size, output_size: MaxPoolAggregator(input_size, output_size, model_size=ModelSize.SMALL),
+        # 0.612
+        "lstm": lambda input_size, output_size: LstmAggregator(input_size, output_size, model_size=ModelSize.SMALL)
     }
 
     model_name = os.path.splitext(os.path.basename(__file__))[0]
     experiments_dir = os.path.dirname(os.path.abspath(__file__))
-    model_dir = os.path.join(experiments_dir, model_name, dataset_name, aggrs[aggregator_name])
+    model_dir = os.path.join(experiments_dir, model_name,
+                             dataset_name, aggregator_name)
 
     run_id = datetime.now().strftime("%Y%m%dT%H%M%S")
     run_dir = os.path.join(model_dir, run_id)
@@ -39,7 +43,8 @@ def run_sage(aggregator_name):
                                      SubSampleNeighborhoodSize(128)).load()
     dataset = dataset.to(device)
 
-    model = GraphSagePPISupervisedModel(dataset.features_per_node,dataset.number_of_classes)
+    model = GraphSagePPISupervisedModel(
+        dataset.features_per_node, dataset.number_of_classes, aggrs[aggregator_name])
     model.to(device)
 
     train_stats = model.fit(
@@ -57,6 +62,4 @@ def run_sage(aggregator_name):
 
 
 if __name__ == "__main__":
-    run_sage()
-    """ for _ in range(10):
-        run_gat_inductive() """
+    run_sage("lstm")

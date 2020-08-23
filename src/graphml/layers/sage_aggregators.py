@@ -58,7 +58,7 @@ class MaxPoolAggregator(Aggregator):
         neighbors = input_matrix.index_select(index=edge_trg_idxs, dim=0)
         neighbors_repr = F.relu(self._fc_net(neighbors))
         aggregated_neighbors = scatter_max(
-            neighbors_repr, edge_src_idxs, dim=0)[0]
+            neighbors_repr, edge_src_idxs, dim=0, dim_size=input_matrix.size(0))[0]
 
         concat = torch.cat([input_matrix, aggregated_neighbors], dim=1)
         return torch.mm(concat, self._weights_matrix)
@@ -85,9 +85,11 @@ class LstmAggregator(Aggregator):
 
     def forward(self, input_matrix: torch.Tensor, adjacency_coo_matrix: torch.Tensor) -> torch.Tensor:
         edge_src_idxs, edge_trg_idxs = adjacency_coo_matrix
-
         neighbors = input_matrix.index_select(index=edge_trg_idxs, dim=0)
-        aggregated_neighbors = self._aggregate(neighbors, edge_src_idxs)
+        
+        lstm_output = self._aggregate(neighbors, edge_src_idxs)
+        aggregated_neighbors = torch.zeros(input_matrix.size(0), lstm_output.size(1), device=input_matrix.device)
+        aggregated_neighbors[edge_src_idxs.unique()] = lstm_output
 
         concat = torch.cat([input_matrix, aggregated_neighbors], dim=1)
         return torch.mm(concat, self._weights_matrix)
@@ -101,6 +103,8 @@ class LstmAggregator(Aggregator):
             neighbors_groups, enforce_sorted=False))
         outputs, lenghts = pad_packed_sequence(outputs, batch_first=True)
         outputs = outputs.view(-1, outputs.size(-1))
+
+        lenghts = lenghts.to(outputs.device)
 
         last_time_step_idxs = torch.arange(lenghts.size(
             0), device=outputs.device) * torch.max(lenghts).item() + (lenghts - 1)
