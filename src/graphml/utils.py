@@ -1,5 +1,8 @@
+from __future__ import annotations
+import random
 import torch
 from typing import List, Dict
+from tqdm import tqdm
 
 
 def normalize_matrix(matrix: torch.Tensor) -> torch.Tensor:
@@ -50,7 +53,7 @@ def sample_neighbors(adjency_coo_matrix: torch.Tensor, sample_size: int) -> torc
     groups = scatter_split(neighbor_idxs, node_idxs)
 
     sampled_groups = []
-    for node_id, group in zip(node_idxs.unique(),groups):
+    for node_id, group in zip(node_idxs.unique(), groups):
         sample_idxs = torch.randint(len(group), (sample_size,))
         sampled_group_neighbors = group[sample_idxs]
         sampled_groups.append(torch.stack([torch.full_like(
@@ -79,3 +82,23 @@ def build_adj_matrix_from_dict(dictionary: Dict[int, List[int]]) -> torch.Tensor
     adj = torch.cat(adj_chunks, dim=1).unique(dim=1)
     without_self_loop_mask = adj[0] != adj[1]
     return adj[:, without_self_loop_mask]
+
+
+def random_positive_pairs(adj: torch.Tensor, walks_num: int, walk_len: int) -> torch.Tensor:
+    src, trg = adj
+
+    nodes_map = dict(zip(src.unique().tolist(), map(
+        lambda x: x.tolist(), scatter_split(trg, src))))
+
+    pairs = []
+    for node in tqdm(nodes_map.keys()):
+        for _1 in range(walks_num):
+            curr_node = node
+            for _2 in range(walk_len):
+                next_node = random.choice(nodes_map[curr_node])
+                if curr_node != node:
+                    pairs.append(torch.as_tensor(
+                        [node, curr_node], device=adj.device))
+                curr_node = next_node
+
+    return torch.stack(pairs).view(2, -1).unique(dim=1)

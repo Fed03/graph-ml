@@ -10,6 +10,7 @@ class GraphData(NamedTuple):
     train_mask: Optional[torch.Tensor] = None
     test_mask: Optional[torch.Tensor] = None
     validation_mask: Optional[torch.Tensor] = None
+    positive_pairs: Optional[torch.Tensor] = None
 
     def to(self, *args, **kwargs):
         return GraphData._make([t.to(*args, **kwargs) if isinstance(t, torch.Tensor) else t for t in self])
