@@ -239,6 +239,7 @@ class GraphSagePPISupervisedModel():
             loss = self._loss_fn(output, labels)
             f1 = MicroF1.calc(output, labels)
             loss.backward()
+            torch.nn.utils.clip_grad_value_(self._net.parameters(), 5)
             self._optim.step()
 
             results.append((loss.item(), f1))

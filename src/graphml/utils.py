@@ -1,6 +1,7 @@
 from __future__ import annotations
 import random
 import torch
+from torch.distributions import Categorical
 from typing import List, Dict
 from tqdm import tqdm
 
@@ -90,15 +91,22 @@ def random_positive_pairs(adj: torch.Tensor, walks_num: int, walk_len: int) -> t
     nodes_map = dict(zip(src.unique().tolist(), map(
         lambda x: x.tolist(), scatter_split(trg, src))))
 
-    pairs = []
+    pairs = {n:[] for n in nodes_map.keys()}
     for node in tqdm(nodes_map.keys()):
         for _1 in range(walks_num):
             curr_node = node
             for _2 in range(walk_len):
                 next_node = random.choice(nodes_map[curr_node])
-                if curr_node != node:
-                    pairs.append(torch.as_tensor(
-                        [node, curr_node], device=adj.device))
+                while next_node == curr_node:
+                    next_node = random.choice(nodes_map[curr_node])
+                pairs[node].append(next_node)
                 curr_node = next_node
 
-    return torch.stack(pairs).view(2, -1).unique(dim=1)
+    return torch.stack([torch.as_tensor(pos_list,device=adj.device) for pos_list in pairs.values()])
+
+def negative_sample_idxs(sample_size: int, adj: torch.Tensor) -> torch.Tensor:
+    prob = degrees(adj) ** 0.75
+    nodes_num = len(prob)
+    distrib = Categorical(probs=prob).expand((nodes_num,))
+
+    return distrib.sample_n(sample_size).reshape(nodes_num,-1)
