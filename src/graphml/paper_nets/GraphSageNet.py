@@ -1,7 +1,7 @@
 from __future__ import annotations
 from functools import reduce
 from itertools import repeat
-from src.graphml.layers.sage_aggregators import Aggregator, ModelSize
+from graphml.layers.sage_aggregators import Aggregator, ModelSize
 from time import perf_counter
 from typing import Callable, List, Optional, Tuple
 from graphml.MiniBatchLoader import BatchStep, MiniBatchLoader
