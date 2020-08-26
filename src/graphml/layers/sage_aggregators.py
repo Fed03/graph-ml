@@ -19,7 +19,7 @@ class MeanAggregator(Aggregator):
     def __init__(self, input_feature_dim: torch.Size, output_feature_dim: torch.Size):
         super().__init__()
         self._weights_matrix = nn.Parameter(torch.empty(
-            input_feature_dim, output_feature_dim, dtype=torch.float32))
+            input_feature_dim, output_feature_dim, dtype=torch.float))
 
         # TODO: add gain (relu)?
         nn.init.xavier_uniform_(self._weights_matrix)
@@ -30,7 +30,7 @@ class MeanAggregator(Aggregator):
         edge_src_idxs = adj[0]
         neighbors = input_matrix.index_select(index=adj[1], dim=0)
 
-        mean = scatter_mean(neighbors, edge_src_idxs, dim=0)
+        mean = scatter_mean(neighbors, edge_src_idxs, dim=0, dim_size=input_matrix.size(0))
         return torch.mm(mean, self._weights_matrix)
 
 
@@ -46,7 +46,7 @@ class MaxPoolAggregator(Aggregator):
         hidden_feature_dim = hidden_feature_dim if hidden_feature_dim else self._sizes[model_size]
 
         self._weights_matrix = nn.Parameter(torch.empty(
-            input_feature_dim + hidden_feature_dim, output_feature_dim, dtype=torch.float32))
+            input_feature_dim + hidden_feature_dim, output_feature_dim, dtype=torch.float))
         # TODO: add gain (relu)?
         nn.init.xavier_uniform_(self._weights_matrix)
 
@@ -76,7 +76,7 @@ class LstmAggregator(Aggregator):
         hidden_feature_dim = hidden_feature_dim if hidden_feature_dim else self._sizes[model_size]
 
         self._weights_matrix = nn.Parameter(torch.empty(
-            input_feature_dim + hidden_feature_dim, output_feature_dim, dtype=torch.float32))
+            input_feature_dim + hidden_feature_dim, output_feature_dim, dtype=torch.float))
         # TODO: add gain (relu)?
         nn.init.xavier_uniform_(self._weights_matrix)
 

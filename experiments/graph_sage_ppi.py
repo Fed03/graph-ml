@@ -39,8 +39,8 @@ def run_sage(aggregator_name):
     device = torch.device(
         "cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-    dataset = datasets[dataset_name](experiments_dir,
-                                     SubSampleNeighborhoodSize(128)).load()
+    dataset = datasets[dataset_name](
+        experiments_dir, SubSampleNeighborhoodSize(128)).load()
     dataset = dataset.to(device)
 
     model = GraphSagePPISupervisedModel(

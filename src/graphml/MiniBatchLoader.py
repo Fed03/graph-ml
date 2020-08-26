@@ -68,7 +68,7 @@ class BatchStep(NamedTuple):
     sampled_adjs: List[torch.Tensor]
 
     def to(self, *args, **kwargs) -> BatchStep:
-        return self._replace(
+        return BatchStep(
             self.target_idxs.to(*args, **kwargs),
             self.batch_idxs.to(*args, **kwargs),
             self.sampled_idxs.to(*args, **kwargs),
