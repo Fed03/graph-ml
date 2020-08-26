@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List, NamedTuple
 import torch
 import numpy as np
@@ -62,8 +63,17 @@ def map_tensor_to_new_idxs(trg: torch.Tensor, old_idxs: torch.Tensor) -> torch.T
 
 class BatchStep(NamedTuple):
     target_idxs: torch.Tensor
-    node_idxs: torch.Tensor
-    sampled_adj: List[torch.Tensor]
+    batch_idxs: torch.Tensor
+    sampled_idxs: torch.Tensor
+    sampled_adjs: List[torch.Tensor]
+
+    def to(self, *args, **kwargs) -> BatchStep:
+        return self._replace(
+            self.target_idxs.to(*args, **kwargs),
+            self.batch_idxs.to(*args, **kwargs),
+            self.sampled_idxs.to(*args, **kwargs),
+            list(map(lambda x: x.to(*args, **kwargs), self.sampled_adjs))
+        )
 
 
 class MiniBatchLoader(DataLoader):
@@ -92,18 +102,19 @@ class MiniBatchLoader(DataLoader):
         for step_size in reversed(self._neighborhood_sizes):
             step_adj = self._select_adj_by_src_idxs(batch_idxs)
             if step_size != -1:
-                step_adj = sample_neighbors(step_adj, step_size) 
+                step_adj = sample_neighbors(step_adj, step_size)
             adjs.append(step_adj)
             batch_idxs = torch.unique(step_adj, sorted=True)
 
         adjs = [map_tensor_to_new_idxs(adj, batch_idxs) for adj in adjs]
 
-        l = trg_idx, batch_idxs, map_tensor_to_new_idxs(
-            trg_idx.clone(), batch_idxs), reversed(adjs)
-        return l
+        return BatchStep(
+            trg_idx,
+            batch_idxs,
+            map_tensor_to_new_idxs(trg_idx.clone(), batch_idxs),
+            reversed(adjs)
+        )
 
     def _select_adj_by_src_idxs(self, src_idxs: List[int]) -> torch.Tensor:
         mask = isin(src_idxs, self._adj[0])
-
-        l = self._adj[:, mask]
-        return l
+        return self._adj[:, mask]

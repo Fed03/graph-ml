@@ -35,7 +35,6 @@ def run_sage(dataset_name):
         experiments_dir,
         SubSampleNeighborhoodSize(128)
     ).load()
-    dataset = dataset.to(device)
 
     model = GraphSageRedditSupervisedModel(
         dataset.features_per_node,

@@ -55,10 +55,12 @@ class GraphSageRedditSupervisedModel():
             self._net.parameters(), learning_rate)
         # pull up
         self._stop_requested = False
+        self._current_device = torch.device("cpu")
 
     # pull up
-    def to(self, *args, **kwargs) -> GraphSageRedditSupervisedModel:
-        self._net.to(*args, **kwargs)
+    def to(self, device: torch.device) -> GraphSageRedditSupervisedModel:
+        self._current_device = device
+        self._net.to(device)
         return self
 
     def fit(self, epochs: int, train_data: GraphData, validation_data: GraphData, *callbacks: Optional[Callable[[GraphSageRedditSupervisedModel, EpochStat], None]]) -> List[EpochStat]:
@@ -107,12 +109,13 @@ class GraphSageRedditSupervisedModel():
         self._net.train()
 
         results = []
-        for trg_idx, batch_idxs, sampled_idx, adjs in tqdm(self._train_loader):
+        for batch_step in tqdm(self._train_loader):
+            batch_step = batch_step.to(self._current_device)
             self._optim.zero_grad()
             output = self._net(
-                self._train_data.features_vectors[batch_idxs], *adjs)
-            output = output[sampled_idx]
-            labels = self._train_data.labels[trg_idx]
+                self._train_data.features_vectors[batch_step.batch_idxs], *batch_step.sampled_adjs)
+            output = output[batch_step.sampled_idxs]
+            labels = self._train_data.labels[batch_step.target_idxs]
 
             loss = self._loss_fn(output, labels)
             f1 = MicroF1.calc(output, labels)
@@ -129,11 +132,12 @@ class GraphSageRedditSupervisedModel():
             self._net.eval()
 
             results = []
-            for trg_idx, batch_idxs, sampled_idx, adjs in tqdm(self._validation_loader):
+            for batch_step in tqdm(self._validation_loader):
+                batch_step = batch_step.to(self._current_device)
                 output = self._net(
-                    self._validation_data.features_vectors[batch_idxs], *adjs)
-                output = output[sampled_idx]
-                labels = self._validation_data.labels[trg_idx]
+                    self._validation_data.features_vectors[batch_step.batch_idxs], *batch_step.sampled_adjs)
+                output = output[batch_step.sampled_idxs]
+                labels = self._validation_data.labels[batch_step.target_idxs]
 
                 loss = self._loss_fn(output, labels)
                 f1 = MicroF1.calc(output, labels)
@@ -154,11 +158,12 @@ class GraphSageRedditSupervisedModel():
 
             self._net.eval()
             results = []
-            for trg_idx, batch_idxs, sampled_idx, adjs in tqdm(loader):
+            for batch_step in tqdm(loader):
+                batch_step = batch_step.to(self._current_device)
                 output = self._net(
-                    test_data.features_vectors[batch_idxs], *adjs)
-                output = output[sampled_idx]
-                labels = test_data.labels[trg_idx]
+                    test_data.features_vectors[batch_step.batch_idxs], *batch_step.sampled_adjs)
+                output = output[batch_step.sampled_idxs]
+                labels = test_data.labels[batch_step.target_idxs]
 
                 loss = self._loss_fn(output, labels)
                 f1 = MicroF1.calc(output, labels)
