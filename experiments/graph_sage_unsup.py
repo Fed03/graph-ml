@@ -10,7 +10,7 @@ from graphml.run_callbacks import SaveModelOnBestMetric
 
 
 def run_sage(aggregator_name):
-    epochs = 1
+    epochs = 1000
     dataset_name = "ppi"
 
     datasets = {
@@ -43,7 +43,8 @@ def run_sage(aggregator_name):
                                      SubSampleNeighborhoodSize(128), CalcPositivePairs(50, 5)).load()
     dataset = dataset.to(device)
 
-    model = GraphSagePPIUnsupervisedModel(dataset.features_per_node,dataset.number_of_classes,aggrs[aggregator_name],1e-5)
+    model = GraphSagePPIUnsupervisedModel(
+        dataset.features_per_node, dataset.number_of_classes, aggrs[aggregator_name], 1e-5)
     model.to(device)
 
     train_stats = model.fit(
