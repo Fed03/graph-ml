@@ -73,4 +73,7 @@ def run_sage(dataset_name, aggr_name):
 
 
 if __name__ == "__main__":
-    run_sage("reddit", "lstm")
+    for _ in range(10):
+        run_sage("reddit", "pool")
+        run_sage("reddit", "lstm")
+        run_sage("reddit", "gcn")

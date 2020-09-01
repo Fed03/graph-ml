@@ -62,4 +62,7 @@ def run_sage(aggregator_name):
 
 
 if __name__ == "__main__":
-    run_sage("gcn")
+    for _ in range(10):
+        run_sage("gcn")
+        run_sage("pool")
+        run_sage("lstm")
