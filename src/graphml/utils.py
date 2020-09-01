@@ -107,6 +107,6 @@ def random_positive_pairs(adj: torch.Tensor, walks_num: int, walk_len: int) -> t
 def negative_sample_idxs(sample_size: int, adj: torch.Tensor) -> torch.Tensor:
     prob = degrees(adj) ** 0.75
     nodes_num = len(prob)
-    distrib = Categorical(probs=prob).expand((nodes_num,))
+    distrib = Categorical(probs=prob)#.expand((nodes_num,))
 
-    return distrib.sample_n(sample_size).reshape(nodes_num,-1)
+    return distrib.sample((sample_size,))#.reshape(nodes_num,-1)
