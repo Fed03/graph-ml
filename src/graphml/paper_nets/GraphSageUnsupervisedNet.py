@@ -12,6 +12,9 @@ import torch
 from graphml.metrics import Loss, MicroF1
 from graphml.utils import negative_sample_idxs, sample_neighbors
 from tqdm import tqdm
+from sklearn.linear_model import SGDClassifier
+from sklearn.multioutput import MultiOutputClassifier
+
 
 
 class GraphSageNet(torch.nn.Module):
@@ -93,14 +96,12 @@ class GraphSagePPIUnsupervisedModel():
         results = []
         for train_graph in self._train_data:
             self._optim.zero_grad()
-            adjs = [sample_neighbors(train_graph.adj_coo_matrix,size) for size in [25,10]]
-            output = self._net(train_graph.features_vectors,
-                               *adjs)
+            output = self._run_net(train_graph)
             labels = train_graph.labels
 
             loss = self.unsup_loss(
                 output, train_graph.positive_pairs, train_graph.adj_coo_matrix)
-            f1 = MicroF1.calc(output, labels)
+            f1 = 0
             loss.backward()
             torch.nn.utils.clip_grad_value_(self._net.parameters(), 5)
             self._optim.step()
@@ -116,14 +117,12 @@ class GraphSagePPIUnsupervisedModel():
 
             results = []
             for graph in self._validation_data:
-                adjs = [sample_neighbors(graph.adj_coo_matrix,size) for size in [25,10]]
-                output = self._net(graph.features_vectors,
-                                   *adjs)
+                output = self._run_net(graph)
                 labels = graph.labels
 
                 loss = self.unsup_loss(
                     output, graph.positive_pairs, graph.adj_coo_matrix)
-                f1 = MicroF1.calc(output, labels)
+                f1 = 0
 
                 results.append((loss.item(), f1))
 
@@ -138,22 +137,24 @@ class GraphSagePPIUnsupervisedModel():
                 self._net.load_state_dict(torch.load(best_model_file))
 
             self._net.eval()
+
+            train_embeddings, train_labels = self._calc_embeddings(self._train_data)
+            test_embeddings, test_labels = self._calc_embeddings(test_data)
+
+            log = MultiOutputClassifier(SGDClassifier(loss="log"), n_jobs=10)
+            log.fit(train_embeddings.detach().cpu(), train_labels.detach().cpu())
+
             results = []
             for graph in test_data:
-                adjs = [sample_neighbors(graph.adj_coo_matrix,size) for size in [25,10]]
-                output = self._net(graph.features_vectors,
-                                   *adjs)
-                labels = graph.labels
-
+                output = self._run_net(graph)
                 loss = self.unsup_loss(
                     output, graph.positive_pairs, graph.adj_coo_matrix)
-                f1 = MicroF1.calc(output, labels)
+                results.append((loss.item(),))
 
-                results.append((loss.item(), f1))
+            avg_loss = list(self._avg_results(results))[0]
+            f1 = MicroF1.calc(torch.from_numpy(log.predict(test_embeddings.detach().cpu())),test_labels.detach().cpu())
 
-            avg_loss, avg_f1 = self._avg_results(results)
-
-            result = Loss("Test Loss", avg_loss), MicroF1("Test F1", avg_f1)
+            result = Loss("Test Loss", avg_loss), MicroF1("Test F1", f1)
 
             print(f"{result[0]}, {result[1]}")
             return result
@@ -180,6 +181,23 @@ class GraphSagePPIUnsupervisedModel():
             output[neg_idxs], output.unsqueeze(2)).squeeze()
 
         return self._loss_fn(positive_value, torch.ones_like(positive_value)) + self._loss_fn(negative_values, torch.zeros_like(negative_values))
+
+    def _run_net(self, graph: GraphData) -> torch.Tensor:
+        adjs = [sample_neighbors(graph.adj_coo_matrix,size) for size in [25,10]]
+        return self._net(graph.features_vectors,*adjs)
+
+    def _calc_embeddings(self, data: List[GraphData]):
+        with torch.no_grad():
+            self._net.eval()
+            
+            outputs = []
+            labels = []
+            for graph in data:
+                outputs.append(self._run_net(graph))
+                labels.append(graph.labels)
+
+            return torch.cat(outputs), torch.cat(labels)
+            
 
 class GraphSageRedditUnupervisedModel():
     def __init__(self, input_feature_dim: torch.Size, number_of_classes: int,aggregator_factory, learning_rate=.01):
